@@ -5,6 +5,8 @@
 import os
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from chatbot import GuestHouseChatbot
@@ -27,6 +29,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 정적 파일 마운트 (프론트엔드 서빙)
+app.mount("/js", StaticFiles(directory="../js"), name="js")
+app.mount("/css", StaticFiles(directory="../css"), name="css")
+# app.mount("/images", StaticFiles(directory="../images"), name="images")
 
 # 챗봇 인스턴스 (앱 시작 시 한 번만 로드)
 chatbot = None
@@ -63,12 +70,8 @@ class ChatResponse(BaseModel):
 # API 엔드포인트
 @app.get("/")
 async def root():
-    """루트 엔드포인트"""
-    return {
-        "message": "물레방아하우스 챗봇 API",
-        "version": "1.0.0",
-        "status": "running",
-    }
+    """웹사이트 메인 페이지 (index.html)"""
+    return FileResponse("../index.html")
 
 
 @app.get("/api/health")
