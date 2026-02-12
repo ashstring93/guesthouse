@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Hero Slider Logic
     const heroSlider = document.querySelector('.hero-slider');
-    const images = ['1.avif', '6.avif', '9.avif']; // Landscape oriented images
+    const images = ['images/1.avif', 'images/6.avif', 'images/9.avif']; // Landscape oriented images
     let currentSlide = 0;
 
     // Initialize slides
