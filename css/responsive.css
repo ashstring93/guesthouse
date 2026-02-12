@@ -1,0 +1,59 @@
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    :root {
+        --header-height: 60px;
+    }
+
+    /* Header */
+    #main-header .container {
+        flex-direction: column;
+        padding: 10px 20px;
+    }
+
+    nav ul {
+        gap: 15px;
+        margin-top: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    nav a {
+        font-size: 0.9rem;
+    }
+
+    #main-header.scrolled {
+        height: auto;
+        padding-bottom: 10px;
+    }
+
+    /* Hero */
+    .hero-content h2 {
+        font-size: 2.5rem;
+    }
+
+    .hero-content p {
+        font-size: 1rem;
+    }
+
+    /* Rooms */
+    .room-grid {
+        grid-template-columns: 1fr; /* Single column on mobile */
+        grid-auto-rows: 250px;
+    }
+    
+    .room-item:nth-child(n) {
+        grid-column: span 1;
+        grid-row: span 1;
+    }
+
+    /* Reservation */
+    .reservation-content {
+        grid-template-columns: 1fr;
+    }
+
+    /* General Padding */
+    section {
+        padding: 60px 0 !important;
+    }
+}

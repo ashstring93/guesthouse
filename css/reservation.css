@@ -1,0 +1,136 @@
+/* Reservation Section: Minimalist Information */
+#reservation {
+    background-color: #fff;
+    padding: var(--section-padding) 0;
+}
+
+.reservation-content {
+    display: flex;
+    justify-content: space-between;
+    gap: 60px;
+    flex-wrap: wrap; /* Allow wrapping on small screens */
+}
+
+/* Info Cards to Clean Blocks */
+.info-card {
+    flex: 1;
+    min-width: 300px;
+    background: transparent;
+    padding: 0;
+    box-shadow: none;
+    border: none;
+    border-top: 2px solid var(--text-color); /* Top line accent */
+    padding-top: 30px;
+}
+
+.info-card h4 {
+    font-family: var(--font-en);
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin-bottom: 30px;
+    color: var(--text-color);
+    text-transform: uppercase;
+    border: none;
+    padding: 0;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    font-size: 1rem;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 15px;
+}
+
+.info-item .label {
+    font-weight: 500;
+    color: var(--text-light);
+}
+
+.info-item .value {
+    color: var(--text-color);
+    font-weight: 600;
+    font-family: var(--font-en);
+}
+
+.note {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    margin-top: 20px;
+}
+
+.rules-list li {
+    position: relative;
+    padding-left: 15px;
+    margin-bottom: 15px;
+    color: var(--text-light);
+    font-size: 0.95rem;
+}
+
+.rules-list li::before {
+    content: '-';
+    position: absolute;
+    left: 0;
+    color: var(--text-color);
+}
+
+/* Highlight Block (Inquiry) */
+.info-card.highlight {
+    background-color: #1a1a1a;
+    color: #fff;
+    padding: 40px;
+    text-align: left;
+    border-top: none;
+}
+
+.info-card.highlight h4 {
+    color: #fff;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    padding-bottom: 20px;
+}
+
+.info-card.highlight p {
+    color: rgba(255,255,255,0.7);
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+}
+
+.btn-primary {
+    display: inline-block;
+    color: #fff;
+    font-size: 1.8rem; /* Large Phone Number */
+    font-weight: 300;
+    font-family: var(--font-en);
+    margin: 30px 0;
+    border-bottom: 1px solid #fff;
+    padding-bottom: 5px;
+    transition: opacity 0.3s;
+    background: none;
+    border-radius: 0;
+}
+
+.btn-primary:hover {
+    opacity: 0.7;
+    background: none;
+    color: #fff;
+    transform: none;
+}
+
+.account-info, .license-info {
+    font-size: 0.85rem;
+    opacity: 0.5;
+    margin-top: 10px;
+}
+
+@media (max-width: 768px) {
+    .reservation-content {
+        flex-direction: column;
+        gap: 40px;
+    }
+    
+    .info-card.highlight {
+        padding: 30px;
+    }
+}

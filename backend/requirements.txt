@@ -1,0 +1,8 @@
+langchain==0.1.0
+langchain-google-genai==2.0.2
+langchain-community==0.0.20
+chromadb==0.4.22
+fastapi==0.109.0
+uvicorn==0.27.0
+python-dotenv==1.0.0
+google-generativeai==0.3.0

@@ -1,0 +1,17 @@
+# Project Root
+.env
+.venv
+venv/
+__pycache__/
+*.pyc
+.DS_Store
+.vscode/
+
+# Backend
+backend/.env
+backend/chroma_db/
+backend/__pycache__/
+
+# Frontend/General
+node_modules/
+.git/

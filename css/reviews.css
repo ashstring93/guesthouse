@@ -1,0 +1,92 @@
+/* Reviews Section: Modern Slider */
+#reviews {
+    background-color: var(--bg-color);
+    padding: var(--section-padding) 0;
+}
+
+.reviews-slider {
+    display: flex;
+    gap: 40px;
+    overflow-x: auto;
+    padding-bottom: 40px;
+    /* Hide scrollbar */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.reviews-slider::-webkit-scrollbar {
+    display: none;
+}
+
+.review-card {
+    min-width: 400px;
+    background: #fff;
+    padding: 40px;
+    border: 1px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.review-card:hover {
+    border-color: var(--text-color);
+    transform: translateY(-5px);
+}
+
+.review-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 15px;
+}
+
+.reviewer-name {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--text-color);
+}
+
+.review-date {
+    font-size: 0.8rem;
+    color: #aaa;
+    font-family: var(--font-en);
+}
+
+.review-stars {
+    color: var(--text-color); /* Modern Black Stars */
+    font-size: 0.8rem;
+    margin-bottom: 20px;
+    letter-spacing: 2px;
+}
+
+.review-text {
+    font-size: 0.95rem;
+    color: var(--text-light);
+    line-height: 1.7;
+    font-style: italic; /* Quote style */
+}
+
+@media (max-width: 768px) {
+    .review-card {
+        min-width: 280px;
+        padding: 25px;
+    }
+}
+
+/* Amenities List in About */
+.amenities-list {
+    margin-top: 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.amenities-list li {
+    font-weight: 500;
+    color: #444;
+}
+
+@media (max-width: 768px) {
+    .amenities-list {
+        grid-template-columns: 1fr;
+    }
+}
