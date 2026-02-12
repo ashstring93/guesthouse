@@ -4,7 +4,7 @@
  */
 
 class MullebangChatbot {
-    constructor(apiUrl = 'http://localhost:8000') {
+    constructor(apiUrl = '') {
         this.apiUrl = apiUrl;
         this.conversationId = this.generateId();
         this.isOpen = false;
@@ -182,7 +182,10 @@ class MullebangChatbot {
     }
     
     async callAPI(question) {
-        const response = await fetch(`${this.apiUrl}/api/chat`, {
+        // apiUrl이 있으면 사용, 없으면 상대 경로 'api/chat' 사용
+        const url = this.apiUrl ? `${this.apiUrl}/api/chat` : 'api/chat';
+        
+        const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -234,19 +237,7 @@ class MullebangChatbot {
 
 // 페이지 로드 시 챗봇 초기화
 document.addEventListener('DOMContentLoaded', () => {
-    // 호스트명 기반으로 API URL 동적 설정
-    const hostname = window.location.hostname;
-    const isLocal = hostname === 'localhost' || 
-                   hostname === '127.0.0.1' || 
-                   hostname.startsWith('192.168.') || 
-                   hostname.startsWith('172.') || 
-                   hostname.startsWith('10.');
-
-    const API_URL = isLocal
-        ? `http://${hostname}:8000` 
-        : 'https://your-backend-url.com';
-    
-    
-    window.chatbot = new MullebangChatbot(API_URL);
+    // 상대 경로 사용을 위해 apiUrl 없이 초기화
+    window.chatbot = new MullebangChatbot();
     console.log('물레방아하우스 챗봇이 준비되었습니다! 🎉');
 });
