@@ -33,7 +33,7 @@ app.add_middleware(
 # 정적 파일 마운트 (프론트엔드 서빙)
 app.mount("/js", StaticFiles(directory="../js"), name="js")
 app.mount("/css", StaticFiles(directory="../css"), name="css")
-# app.mount("/images", StaticFiles(directory="../images"), name="images")
+app.mount("/images", StaticFiles(directory="../images"), name="images")
 
 # 챗봇 인스턴스 (앱 시작 시 한 번만 로드)
 chatbot = None
