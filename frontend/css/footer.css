@@ -19,9 +19,18 @@
     border: 1px solid #eee;
 }
 
+.map-placeholder.map-ready {
+    display: block;
+    background-color: #fff;
+}
+
+.map-placeholder.map-ready #map-fallback {
+    display: none;
+}
+
 #map {
     width: 100%;
-    height: 100%;
+    height: 500px;
 }
 
 .map-visual {

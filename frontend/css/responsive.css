@@ -56,4 +56,8 @@
     section {
         padding: 60px 0 !important;
     }
+
+    #map {
+        height: 360px;
+    }
 }

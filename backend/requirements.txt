@@ -6,6 +6,7 @@ chromadb
 fastapi
 uvicorn
 python-dotenv
+google-genai
 google-generativeai
 unstructured
 markdown

@@ -1,90 +1,113 @@
-# 🚀 물레방아하우스 챗봇 배포 가이드
+# 🚀 물레방아하우스 챗봇 배포 가이드 (Ubuntu 리눅스 서버용)
 
-이 문서는 로컬 노트북에서 개발한 챗봇을 **전 세계 누구나 접속할 수 있게 공개**하고, 최종적으로 **개인 서버(저전력 PC)로 이전**하는 절차를 안내합니다.
+서버(100.95.246.101)가 **Ubuntu 24.04**인 것을 확인했습니다.
+리눅스 환경에 맞춰 명령어를 정리해드립니다.
 
 ## 📋 전체 로드맵
 
-1.  **임시 공개 (노트북)**: Tailscale Funnel을 사용하여 노트북의 챗봇을 외부에서 접속해보기
-2.  **서버 이전**: 코드와 환경을 개인 서버 PC로 복사
-3.  **서버 설정**: 방화벽 개방 및 서버 실행
-4.  **도메인 연결**: 구매한 도메인(예: `mullebang.com`) 연결
+1.  **서버 접속**: SSH로 접속
+2.  **환경 설정**: Python, GitHub CLI 설치
+3.  **코드 다운로드**: `git clone` (인증 필요)
+4.  **서버 실행**: 패키지 설치 및 실행
 
 ---
 
-## 1단계: 노트북에서 외부 접속 테스트
+## 1단계: 필수 프로그램 설치 (서버 터미널에서)
 
-이미 Tailscale을 사용 중이시므로, **Funnel** 기능을 쓰면 복잡한 공유기 설정 없이 바로 외부 접속 주소를 만들 수 있습니다.
+먼저 `sudo` 권한으로 업데이트하고 필요한 도구를 설치합니다.
 
-### 1-1. 백엔드(8000)와 프론트엔드(3000) 외부 공개
+```bash
+sudo apt update
+sudo apt install -y python3-pip python3-venv gh
+```
 
-Tailscale이 설치되어 있다면 터미널에서 `tailscale funnels` 명령어로 설정할 수 있습니다.
-(자세한 Tailscale 사용법은 별도 문의 부탁드립니다)
+-   `python3-venv`: 가상환경을 만들기 위해 필수입니다.
+-   `gh`: GitHub 로그인을 쉽게 하기 위한 도구입니다.
 
-또는 **ngrok**이라는 도구를 써서 더 쉽게 테스트할 수도 있습니다 (무료).
+---
 
-**핵심**: 외부에서 접속할 수 있는 `https://...` 주소가 2개 필요합니다.
-1.  프론트엔드용 (예: `https://house-front.tailnet.ts.net`)
-2.  백엔드용 (예: `https://house-back.tailnet.ts.net`)
+## 2단계: GitHub 로그인 (가장 중요 ⭐)
 
-### 1-2. `chatbot.js` 수정
+비밀번호 입력 방식은 이제 막혔으므로, `gh` 명령어로 로그인합니다.
 
-외부 주소가 생기면, `js/chatbot.js` 파일의 맨 아래 부분을 수정해야 합니다.
+1.  로그인 시작:
+    ```bash
+    gh auth login
+    ```
+2.  화살표 키로 선택:
+    -   **GitHub.com** 선택
+    -   **HTTPS** 선택
+    -   **Yes** (Authenticate Git with your GitHub credentials)
+    -   **Login with a web browser** 선택
+3.  **인증 코드 복사**: 화면에 8자리 코드가 뜹니다 (예: `ABCD-1234`).
+4.  **노트북에서 접속**: 노트북 브라우저에서 `https://github.com/login/device` 에 접속하여 코드를 입력합니다.
+5.  승인하면 서버 터미널에서 로그인이 완료됩니다.
 
-```javascript
-    const API_URL = isLocal
-        ? `http://${hostname}:8000` 
-        : 'https://여러분의-백엔드-주소.com';  // <--- 여기를 생성된 백엔드 주소로 변경
+---
+
+## 3단계: 코드 내려받기 (Clone)
+
+이제 비밀번호 없이 다운로드됩니다.
+
+```bash
+cd ~/guesthouse
+git clone https://github.com/ashstring93/guesthouse.git .
 ```
 
 ---
 
-## 2단계: 개인 서버 PC로 이전
+## 4단계: 가상환경 설정 및 패키지 설치
 
-노트북 테스트가 끝나면 서버 PC로 이사합니다.
+Ubuntu에서는 시스템 Python을 보호하기 위해 **가상환경(Virtual Environment)** 사용이 권장됩니다.
 
-### 2-1. 파일 복사
-노트북의 `물레방아하우스` 폴더 전체를 서버 PC로 복사합니다. (USB, 공유폴더, 또는 Git 사용)
+1.  **가상환경 생성 및 활성화**:
+    ```bash
+    python3 -m venv venv
+    source venv/bin/activate
+    ```
+    *(프롬프트 앞에 `(venv)`가 생기면 성공!)*
 
-### 2-2. 환경 설정 (서버 PC에서)
-서버 PC에도 Python과 필요한 라이브러리가 설치되어 있어야 합니다.
-
-1.  **Python 설치**: 3.11 버전 권장
 2.  **라이브러리 설치**:
     ```bash
     pip install fastapi uvicorn google-genai python-dotenv chromadb
     ```
-3.  **API 키 확인**: `.env` 파일이 잘 복사되었는지 확인합니다.
+
+3.  **비밀 파일(.env) 생성**:
+    노트북의 `.env` 내용을 복사해서 서버에 만듭니다.
+    ```bash
+    nano backend/.env
+    ```
+    (붙여넣기 후 `Ctrl+O`, `Enter`, `Ctrl+X`로 저장/종료)
 
 ---
 
-## 3단계: 서버 방화벽 설정 (중요 ⚠️)
+## 5단계: 벡터 DB 생성 및 서버 실행
 
-**Q: 노트북에서 설정한 방화벽 규칙은 손대지 않아도 되나요?**
-A: **네, 노트북은 그대로 두어도 됩니다.** 하지만 서버 PC는 별개의 컴퓨터이므로, **서버 PC에서도 똑같이 방화벽을 열어줘야 합니다.**
+1.  **지식베이스 업데이트 (필요 시)**:
+    - `backend/knowledge_base/*.md` 내용 수정
 
-1.  서버 PC에서 `고급 보안이 포함된 Windows Defender 방화벽` 실행
-2.  **인바운드 규칙** > **새 규칙**
-3.  **포트 8000** (백엔드) 허용
-4.  **포트 3000** (프론트엔드) 허용 (웹서버 실행 시)
+2.  **DB 생성**:
+    ```bash
+    cd backend
+    python scripts/build_knowledge_base.py
+    ```
 
----
+3.  **서버 실행**:
+    ```bash
+    uvicorn server:app --host 0.0.0.0 --port 8000
+    ```
 
-## 4단계: 도메인 연결 (카페24 등)
+성공하면 `Application startup complete` 메시지가 뜹니다.
+정적 웹 파일은 `frontend/` 디렉토리(`index.html`, `css/`, `js/`, `images/`)에서 서빙됩니다.
+이제 노트북이나 모바일에서 `http://100.95.246.101:8000/docs` 로 접속해보세요! (Tailscale망 내부)
 
-가장 멋진 단계입니다. `www.mullebang-house.com` 같은 주소로 접속하게 만듭니다.
+### 수동 점검 (테스트 스크립트 대체)
 
-1.  **도메인 구입**: 카페24, 가비아 등에서 도메인 구입
-2.  **DNS 설정**: 집에 있는 서버 PC의 **공인 IP(Public IP)**를 도메인 A 레코드에 등록
-3.  **포트 포워딩**: 공유기 설정 페이지(192.168.0.1 등) 접속 -> 포트포워딩 설정
-    - 외부 80 포트 -> 내부 서버 IP의 3000 포트 (사용자 접속용)
-    - 외부 8000 포트 -> 내부 서버 IP의 8000 포트 (API용)
+```bash
+python quick_test.py
 
-이렇게 하면 `http://www.mullebang-house.com`으로 접속했을 때 우리집 서버의 3000번 포트로 연결됩니다.
-
----
-
-## ✅ 추천하는 다음 행동
-
-지금 당장 "누구나 접속"하게 하려면 **1단계(Tailscale Funnel)**를 시도해보거나, 바로 **2단계(서버 이전)**로 넘어가서 서버 PC 세팅을 시작하는 것이 좋습니다.
-
-서버 PC로 파일을 옮길 준비가 되셨나요?
+curl http://100.95.246.101:8000/api/health
+curl -X POST http://100.95.246.101:8000/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"question":"체크인 시간이 언제인가요?"}'
+```

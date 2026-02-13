@@ -1,5 +1,79 @@
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Mullebang-a House website loaded.');
+    const GUESTHOUSE_ADDRESS = '전북특별자치도 전주시 완산구 물레방아3길 19-3';
+    const GUESTHOUSE_PARCEL = '태평동 180-3';
+    const GUESTHOUSE_POSTCODE = '54998';
+
+    function initializeNaverMap() {
+        const mapElement = document.getElementById('map');
+        const fallback = document.getElementById('map-fallback');
+
+        if (!mapElement) return true;
+        if (!window.naver || !window.naver.maps) return false;
+        if (window.__naverMapAuthFailed) {
+            mapElement.classList.remove('map-ready');
+            return true;
+        }
+
+        // Fallback center near guesthouse in case geocoding is unavailable.
+        const guesthousePosition = new naver.maps.LatLng(35.82438, 127.13421);
+        const map = new naver.maps.Map(mapElement, {
+            center: guesthousePosition,
+            zoom: 16,
+            zoomControl: true,
+            zoomControlOptions: {
+                position: naver.maps.Position.TOP_RIGHT
+            }
+        });
+
+        const marker = new naver.maps.Marker({
+            position: guesthousePosition,
+            map,
+            title: 'Mullebang-a House'
+        });
+
+        const infoWindow = new naver.maps.InfoWindow({
+            content: `
+                <div style="padding:10px 12px;font-size:13px;line-height:1.5;">
+                    <strong>Mullebang-a House</strong><br>
+                    ${GUESTHOUSE_ADDRESS}<br>
+                    지번: ${GUESTHOUSE_PARCEL}<br>
+                    우편번호: ${GUESTHOUSE_POSTCODE}
+                </div>
+            `
+        });
+        infoWindow.open(map, marker);
+
+        mapElement.classList.add('map-ready');
+
+        return true;
+    }
+
+    if (!initializeNaverMap()) {
+        let retries = 0;
+        const maxRetries = 20;
+        const retryTimer = setInterval(() => {
+            retries += 1;
+
+            if (initializeNaverMap()) {
+                clearInterval(retryTimer);
+                return;
+            }
+
+            if (retries >= maxRetries) {
+                clearInterval(retryTimer);
+                const fallback = document.getElementById('map-fallback');
+                if (fallback) {
+                    const title = fallback.querySelector('span');
+                    const description = fallback.querySelector('p');
+                    if (title) title.textContent = '지도를 불러오지 못했습니다.';
+                    if (description) {
+                        description.textContent = 'Client ID 또는 NCP Web 서비스 URL 설정을 확인해 주세요.';
+                    }
+                }
+            }
+        }, 250);
+    }
 
     // Smooth scrolling for navigation links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
@@ -39,6 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 5000); // Change slide every 5 seconds
 
     // Header Scroll Effect & Hero Parallax
+    const header = document.getElementById('main-header');
     const heroSection = document.getElementById('hero');
     const heroContent = document.querySelector('.hero-content');
     // heroSlider is already defined above
@@ -47,10 +122,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const scrollY = window.scrollY;
 
         // Header logic
-        if (scrollY > 50) {
-            header.classList.add('scrolled');
-        } else {
-            header.classList.remove('scrolled');
+        if (header) {
+            if (scrollY > 50) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
         }
 
         // Parallax logic (only effective when hero is in view)

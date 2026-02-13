@@ -1,5 +1,4 @@
 """간단한 API 테스트 - urllib 사용"""
-
 import urllib.request
 import json
 

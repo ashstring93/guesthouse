@@ -1,10 +1,5 @@
-"""
-물레방아하우스 RAG 챗봇 파이프라인
-
-gemini-2.5-flash-lite 모델을 사용한 대화형 AI 어시스턴트
-"""
-
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 from langchain_chroma import Chroma
 from langchain_core.prompts import PromptTemplate
@@ -13,7 +8,21 @@ from langchain_core.runnables import RunnablePassthrough
 from google import genai
 from typing import Optional, List, Any
 
-load_dotenv()
+BACKEND_DIR = Path(__file__).resolve().parent
+
+
+def resolve_chroma_persist_dir(raw_path: Optional[str] = None) -> Path:
+    """Resolve Chroma path relative to backend dir when env uses relative path."""
+    if raw_path is None:
+        raw_path = os.getenv("CHROMA_PERSIST_DIRECTORY")
+
+    if not raw_path:
+        return BACKEND_DIR / "chroma_db"
+
+    path = Path(raw_path)
+    if path.is_absolute():
+        return path
+    return BACKEND_DIR / path
 
 
 class GeminiEmbeddings:
@@ -38,16 +47,18 @@ class GeminiEmbeddings:
 class GuestHouseChatbot:
     """물레방아하우스 챗봇"""
 
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, chroma_persist_directory: Optional[str] = None):
         self.api_key = api_key
         self.client = genai.Client(api_key=api_key)
+        self.chroma_persist_dir = resolve_chroma_persist_dir(chroma_persist_directory)
 
         # 임베딩 모델
         self.embeddings = GeminiEmbeddings(api_key=api_key)
 
         # 벡터 DB 로드
         self.vectorstore = Chroma(
-            persist_directory="./chroma_db", embedding_function=self.embeddings
+            persist_directory=str(self.chroma_persist_dir),
+            embedding_function=self.embeddings,
         )
 
         # Retriever 설정
@@ -74,49 +85,41 @@ class GuestHouseChatbot:
 
 답변:"""
 
-        try:
-            response = self.client.models.generate_content(
-                model="gemini-2.5-flash-lite",
-                contents=prompt,
-                config={
-                    "temperature": 0.7,
-                    "max_output_tokens": 1024,
-                },
-            )
-            return response.text
-        except Exception as e:
-            return f"죄송합니다. 답변을 생성하는 중 오류가 발생했습니다: {str(e)}"
+        response = self.client.models.generate_content(
+            model="gemini-2.5-flash-lite",
+            contents=prompt,
+            config={
+                "temperature": 0.7,
+                "max_output_tokens": 1024,
+            },
+        )
+        return response.text
 
     def ask(self, question: str) -> dict:
         """질문에 답변"""
-        try:
-            # 관련 문서 검색
-            docs = self.retriever.invoke(question)
+        # 관련 문서 검색
+        docs = self.retriever.invoke(question)
 
-            # 컨텍스트 생성
-            context = "\n\n".join([doc.page_content for doc in docs])
+        # 컨텍스트 생성
+        context = "\n\n".join([doc.page_content for doc in docs])
 
-            # 답변 생성
-            answer = self.generate_answer(question, context)
+        # 답변 생성
+        answer = self.generate_answer(question, context)
 
-            return {
-                "question": question,
-                "answer": answer,
-                "sources": [
-                    doc.metadata.get("source", "Unknown").split("\\")[-1]
-                    for doc in docs
-                ],
-            }
-        except Exception as e:
-            return {
-                "question": question,
-                "answer": f"죄송합니다. 답변을 생성하는 중 오류가 발생했습니다: {str(e)}",
-                "sources": [],
-            }
+        return {
+            "question": question,
+            "answer": answer,
+            "sources": [
+                doc.metadata.get("source", "Unknown").split("\\")[-1]
+                for doc in docs
+            ],
+        }
 
 
 def main():
     """챗봇 테스트"""
+    load_dotenv()
+
     print("=" * 70)
     print("🏠 물레방아하우스 AI 챗봇 테스트")
     print("=" * 70)

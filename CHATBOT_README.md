@@ -15,11 +15,12 @@ python server.py
 
 서버가 http://localhost:8000 에서 실행됩니다.
 
-### 2. 프론트엔드 웹사이트 열기
+### 2. 웹사이트 접속
+
+백엔드 서버가 프론트 파일도 함께 서빙하므로 아래 주소로 접속하면 됩니다.
 
 ```bash
-# 웹 서버로 index.html 실행 (예: Live Server 사용)
-# 또는 직접 index.html을 브라우저에서 열기
+http://localhost:8000
 ```
 
 ## 💬 챗봇 사용 방법
@@ -86,11 +87,13 @@ python server.py
 │   ├── chatbot.py                # RAG 챗봇 클래스
 │   ├── knowledge_base/           # 지식 베이스 (6개 MD 파일)
 │   └── chroma_db/                # 벡터 DB
-├── css/
-│   └── chatbot.css               # 챗봇 스타일
-├── js/
-│   └── chatbot.js                # 챗봇 JavaScript
-└── index.html                    # 메인 웹페이지
+├── frontend/
+│   ├── index.html                # 메인 웹페이지
+│   ├── css/
+│   │   └── chatbot.css           # 챗봇 스타일
+│   └── js/
+│       └── chatbot.js            # 챗봇 JavaScript
+└── review.txt                    # 리뷰 원본 텍스트
 ```
 
 ## 🌐 API 엔드포인트
@@ -129,7 +132,7 @@ python server.py
 
 ### 챗봇 스타일 변경
 
-`css/chatbot.css`에서 색상, 크기, 애니메이션 등을 수정할 수 있습니다:
+`frontend/css/chatbot.css`에서 색상, 크기, 애니메이션 등을 수정할 수 있습니다:
 
 ```css
 /* 플로팅 버튼 색상 변경 */
@@ -146,12 +149,10 @@ python server.py
 
 ### API URL 변경
 
-`js/chatbot.js`에서 백엔드 URL을 수정할 수 있습니다:
+기본값은 상대 경로(`/api/chat`)이며, 필요하면 `apiUrl`을 넘겨서 외부 백엔드를 지정할 수 있습니다:
 
 ```javascript
-const API_URL = window.location.hostname === 'localhost' 
-    ? 'http://localhost:8000' 
-    : 'https://your-backend-url.com';  // 실제 배포 URL로 변경
+window.chatbot = new MullebangChatbot('https://your-backend-url.com');
 ```
 
 ## 🐛 문제 해결
@@ -164,12 +165,12 @@ const API_URL = window.location.hostname === 'localhost'
 ### CORS 오류가 발생해요
 백엔드 `server.py`에서 CORS 설정 확인:
 ```python
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:8000").split(",")
 ```
 
 ### 챗봇 버튼이 보이지 않아요
-1. `css/chatbot.css`가 올바르게 로드되었는지 확인
-2. `js/chatbot.js`가 올바르게 로드되었는지 확인
+1. `frontend/css/chatbot.css`가 올바르게 로드되었는지 확인
+2. `frontend/js/chatbot.js`가 올바르게 로드되었는지 확인
 3. 브라우저 개발자 도구에서 요소 검사
 
 ## 🔐 보안 고려사항
