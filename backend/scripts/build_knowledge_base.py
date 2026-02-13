@@ -8,9 +8,12 @@ from langchain_chroma import Chroma
 from langchain_community.document_loaders import DirectoryLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-load_dotenv()
-
 BACKEND_DIR = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = BACKEND_DIR.parent
+
+# Load env files if present. backend/.env overrides root .env.
+load_dotenv(PROJECT_ROOT / ".env")
+load_dotenv(BACKEND_DIR / ".env", override=True)
 
 
 def resolve_backend_path(raw_path: str | None, default_path: Path) -> Path:
@@ -28,7 +31,6 @@ KNOWLEDGE_BASE_DIR = BACKEND_DIR / "knowledge_base"
 CHROMA_PERSIST_DIR = resolve_backend_path(
     os.getenv("CHROMA_PERSIST_DIRECTORY"), BACKEND_DIR / "chroma_db"
 )
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 def safe_print(message: str):
     """Print text safely for non-UTF8 Windows consoles."""
@@ -60,7 +62,8 @@ def build_knowledge_base():
     """Build knowledge base and persist ChromaDB."""
     safe_print("[INFO] Start building knowledge base")
 
-    if not GEMINI_API_KEY:
+    gemini_api_key = os.getenv("GEMINI_API_KEY")
+    if not gemini_api_key:
         raise ValueError("GEMINI_API_KEY is not set.")
 
     safe_print(f"[INFO] Loading markdown files from: {KNOWLEDGE_BASE_DIR}")
@@ -79,7 +82,7 @@ def build_knowledge_base():
     safe_print(f"[OK] Created chunks: {len(chunks)}")
 
     safe_print(f"[INFO] Building ChromaDB at: {CHROMA_PERSIST_DIR}")
-    embeddings = GeminiEmbeddings(api_key=GEMINI_API_KEY)
+    embeddings = GeminiEmbeddings(api_key=gemini_api_key)
     vectorstore = Chroma.from_documents(
         documents=chunks,
         embedding=embeddings,

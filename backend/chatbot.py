@@ -118,7 +118,9 @@ class GuestHouseChatbot:
 
 def main():
     """챗봇 테스트"""
-    load_dotenv()
+    # Load env files if present. backend/.env overrides root .env.
+    load_dotenv(BACKEND_DIR.parent / ".env")
+    load_dotenv(BACKEND_DIR / ".env", override=True)
 
     print("=" * 70)
     print("🏠 물레방아하우스 AI 챗봇 테스트")
