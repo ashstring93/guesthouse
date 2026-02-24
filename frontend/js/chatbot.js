@@ -176,12 +176,20 @@ class MullebangChatbot {
 
         try {
             // API ?몄텧 (?ㅽ듃由щ컢)
-            const defaultApiPath = window.location.pathname.includes('/reservation/')
-                ? '../api/chat'
-                : 'api/chat';
+            const getAppBasePath = () => {
+                const path = window.location.pathname;
+                const marker = '/reservation/';
+                const markerIndex = path.indexOf(marker);
+                if (markerIndex >= 0) {
+                    return path.slice(0, markerIndex);
+                }
+                if (path === '/') return '';
+                return path.endsWith('/') ? path.slice(0, -1) : path;
+            };
+            const defaultApiPath = `${getAppBasePath()}/api/chat`;
             const url = this.apiUrl
                 ? `${this.apiUrl}/api/chat`
-                : new URL(defaultApiPath, window.location.href).toString();
+                : defaultApiPath;
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {

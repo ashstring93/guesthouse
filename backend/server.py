@@ -439,18 +439,45 @@ async def root():
 
 
 @app.get("/reservation/book")
+async def reservation_book_redirect(request: Request):
+    """예약/결제 페이지 슬래시 URL로 정규화."""
+    target = "book/"
+    if request.url.query:
+        target = f"{target}?{request.url.query}"
+    return RedirectResponse(url=target, status_code=307)
+
+
+@app.get("/reservation/book/")
 async def reservation_book_page():
     """예약/결제용 페이지."""
     return FileResponse(RESERVATION_PAGES_DIR / "book.html")
 
 
 @app.get("/reservation/list")
+async def reservation_list_redirect(request: Request):
+    """예약 현황 페이지 슬래시 URL로 정규화."""
+    target = "list/"
+    if request.url.query:
+        target = f"{target}?{request.url.query}"
+    return RedirectResponse(url=target, status_code=307)
+
+
+@app.get("/reservation/list/")
 async def reservation_list_page():
     """예약 현황 페이지."""
     return FileResponse(RESERVATION_PAGES_DIR / "list.html")
 
 
 @app.get("/reservation/check")
+async def reservation_check_redirect(request: Request):
+    """예약 확인 페이지 슬래시 URL로 정규화."""
+    target = "check/"
+    if request.url.query:
+        target = f"{target}?{request.url.query}"
+    return RedirectResponse(url=target, status_code=307)
+
+
+@app.get("/reservation/check/")
 async def reservation_check_page():
     """예약 확인 페이지."""
     return FileResponse(RESERVATION_PAGES_DIR / "check.html")
@@ -459,7 +486,7 @@ async def reservation_check_page():
 @app.get("/reservation-pay.html")
 async def reservation_pay_page(request: Request):
     """구형 예약 경로 호환용 리다이렉트."""
-    target = "/reservation/book"
+    target = "reservation/book/"
     if request.url.query:
         target = f"{target}?{request.url.query}"
     return RedirectResponse(url=target, status_code=307)

@@ -35,13 +35,25 @@
     }
 
     async function initAvailabilityCalendar(options) {
+        const getAppBasePath = () => {
+            const path = window.location.pathname;
+            const marker = '/reservation/';
+            const markerIndex = path.indexOf(marker);
+            if (markerIndex >= 0) {
+                return path.slice(0, markerIndex);
+            }
+            if (path === '/') return '';
+            return path.endsWith('/') ? path.slice(0, -1) : path;
+        };
+        const withAppBase = (suffix) => `${getAppBasePath()}${suffix}`;
+
         const config = Object.assign(
             {
                 calendarId: 'reservation-list-calendar',
                 selectedDateId: 'reservation-list-selected-date',
                 statusId: 'reservation-list-status',
                 bookButtonId: 'reservation-list-book-btn',
-                bookBaseUrl: 'book',
+                bookBaseUrl: withAppBase('/reservation/book/'),
                 maxNights: 5,
             },
             options || {}
@@ -79,7 +91,7 @@
                 return;
             }
 
-            const url = new URL(config.bookBaseUrl, window.location.href);
+            const url = new URL(config.bookBaseUrl, window.location.origin);
             url.searchParams.set('checkin', toYmd(checkinDate));
             url.searchParams.set('nights', String(nights));
             url.searchParams.set('adults', '2');
@@ -172,10 +184,9 @@
 
         try {
             const availability = await fetchJson(
-                new URL(
-                    `../api/calendar/availability?start=${toYmd(today)}&end=${toYmd(rangeEnd)}`,
-                    window.location.href
-                ).toString()
+                withAppBase(
+                    `/api/calendar/availability?start=${toYmd(today)}&end=${toYmd(rangeEnd)}`
+                )
             );
 
             if (Array.isArray(availability.booked_dates)) {

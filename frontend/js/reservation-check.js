@@ -30,6 +30,17 @@
     };
 
     const normalizePhone = (value) => String(value || '').replace(/[^0-9]/g, '');
+    const getAppBasePath = () => {
+        const path = window.location.pathname;
+        const marker = '/reservation/';
+        const markerIndex = path.indexOf(marker);
+        if (markerIndex >= 0) {
+            return path.slice(0, markerIndex);
+        }
+        if (path === '/') return '';
+        return path.endsWith('/') ? path.slice(0, -1) : path;
+    };
+    const apiUrl = (suffix) => `${getAppBasePath()}${suffix}`;
 
     const formatPhone = (value) => {
         const digits = normalizePhone(value).slice(0, 11);
@@ -140,7 +151,7 @@
         setMessage('예약 정보를 조회하는 중입니다.');
 
         try {
-            const response = await fetch(new URL('../api/reservation/check', window.location.href), {
+            const response = await fetch(apiUrl('/api/reservation/check'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

@@ -61,6 +61,17 @@
     };
 
     const qs = new URLSearchParams(window.location.search);
+    const getAppBasePath = () => {
+        const path = window.location.pathname;
+        const marker = "/reservation/";
+        const markerIndex = path.indexOf(marker);
+        if (markerIndex >= 0) {
+            return path.slice(0, markerIndex);
+        }
+        if (path === "/") return "";
+        return path.endsWith("/") ? path.slice(0, -1) : path;
+    };
+    const apiUrl = (suffix) => `${getAppBasePath()}${suffix}`;
 
     const guestState = {
         adults: 2,
@@ -351,7 +362,7 @@
         }
 
         try {
-            const response = await fetch(new URL("../api/payment/quote", window.location.href), {
+            const response = await fetch(apiUrl("/api/payment/quote"), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -448,7 +459,7 @@
         setStatus("주문 정보를 생성하는 중입니다.");
 
         try {
-            const response = await fetch(new URL("../api/payment/prepare", window.location.href), {
+            const response = await fetch(apiUrl("/api/payment/prepare"), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
