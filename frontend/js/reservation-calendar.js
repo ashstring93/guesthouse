@@ -41,7 +41,7 @@
                 selectedDateId: 'reservation-list-selected-date',
                 statusId: 'reservation-list-status',
                 bookButtonId: 'reservation-list-book-btn',
-                bookBaseUrl: '/reservation/book',
+                bookBaseUrl: 'book',
                 maxNights: 5,
             },
             options || {}
@@ -79,7 +79,7 @@
                 return;
             }
 
-            const url = new URL(config.bookBaseUrl, window.location.origin);
+            const url = new URL(config.bookBaseUrl, window.location.href);
             url.searchParams.set('checkin', toYmd(checkinDate));
             url.searchParams.set('nights', String(nights));
             url.searchParams.set('adults', '2');
@@ -172,7 +172,10 @@
 
         try {
             const availability = await fetchJson(
-                `/api/calendar/availability?start=${toYmd(today)}&end=${toYmd(rangeEnd)}`
+                new URL(
+                    `../api/calendar/availability?start=${toYmd(today)}&end=${toYmd(rangeEnd)}`,
+                    window.location.href
+                ).toString()
             );
 
             if (Array.isArray(availability.booked_dates)) {

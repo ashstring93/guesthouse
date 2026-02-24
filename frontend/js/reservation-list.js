@@ -6,6 +6,6 @@
         selectedDateId: 'reservation-list-selected-date',
         statusId: 'reservation-list-status',
         bookButtonId: 'reservation-list-book-btn',
-        bookBaseUrl: '/reservation/book'
+        bookBaseUrl: 'book'
     });
 });

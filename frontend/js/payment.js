@@ -351,7 +351,7 @@
         }
 
         try {
-            const response = await fetch("/api/payment/quote", {
+            const response = await fetch(new URL("../api/payment/quote", window.location.href), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -448,7 +448,7 @@
         setStatus("주문 정보를 생성하는 중입니다.");
 
         try {
-            const response = await fetch("/api/payment/prepare", {
+            const response = await fetch(new URL("../api/payment/prepare", window.location.href), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),

@@ -140,7 +140,7 @@
         setMessage('예약 정보를 조회하는 중입니다.');
 
         try {
-            const response = await fetch('/api/reservation/check', {
+            const response = await fetch(new URL('../api/reservation/check', window.location.href), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

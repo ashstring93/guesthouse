@@ -176,7 +176,12 @@ class MullebangChatbot {
 
         try {
             // API ?몄텧 (?ㅽ듃由щ컢)
-            const url = this.apiUrl ? `${this.apiUrl}/api/chat` : 'api/chat';
+            const defaultApiPath = window.location.pathname.includes('/reservation/')
+                ? '../api/chat'
+                : 'api/chat';
+            const url = this.apiUrl
+                ? `${this.apiUrl}/api/chat`
+                : new URL(defaultApiPath, window.location.href).toString();
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {

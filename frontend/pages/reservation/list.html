@@ -4,26 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>물레방아하우스 예약 현황</title>
-    <link rel="stylesheet" href="/css/style.css">
-    <link rel="stylesheet" href="/css/responsive.css">
-    <link rel="stylesheet" href="/css/reservation.css">
-    <link rel="stylesheet" href="/css/reservation-hub.css">
-    <link rel="stylesheet" href="/css/chatbot.css">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="../../css/responsive.css">
+    <link rel="stylesheet" href="../../css/reservation.css">
+    <link rel="stylesheet" href="../../css/reservation-hub.css">
+    <link rel="stylesheet" href="../../css/chatbot.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 </head>
 <body class="reservation-hub-page">
     <main class="reservation-hub-main">
         <div class="reservation-hub-shell">
             <header class="reservation-hub-top">
-                <a href="/" class="back-link" aria-label="메인으로 돌아가기">← 메인으로</a>
+                <a href="../../" class="back-link" aria-label="메인으로 돌아가기">← 메인으로</a>
                 <h1>예약 센터</h1>
                 <p>예약 가능한 날짜를 확인하고 체크인/체크아웃 일정을 선택하세요.</p>
             </header>
 
             <nav class="reservation-hub-tabs" aria-label="예약 메뉴">
-                <a href="/reservation/book" class="reservation-hub-tab">객실 예약</a>
-                <a href="/reservation/list" class="reservation-hub-tab active" aria-current="page">예약 현황</a>
-                <a href="/reservation/check" class="reservation-hub-tab">예약 확인</a>
+                <a href="book" class="reservation-hub-tab">객실 예약</a>
+                <a href="list" class="reservation-hub-tab active" aria-current="page">예약 현황</a>
+                <a href="check" class="reservation-hub-tab">예약 확인</a>
             </nav>
 
             <section class="reservation-panel">
@@ -53,8 +53,8 @@
                                 <a
                                     id="reservation-list-book-btn"
                                     class="btn-primary reservation-pay-btn is-disabled"
-                                    href="/reservation/book"
-                                    data-base-url="/reservation/book"
+                                    href="book"
+                                    data-base-url="book"
                                 >객실 예약 페이지로 이동</a>
                             </div>
                         </div>
@@ -66,9 +66,9 @@
 
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://npmcdn.com/flatpickr/dist/l10n/ko.js"></script>
-    <script src="/js/reservation-calendar.js"></script>
-    <script src="/js/reservation-list.js"></script>
+    <script src="../../js/reservation-calendar.js"></script>
+    <script src="../../js/reservation-list.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="/js/chatbot.js"></script>
+    <script src="../../js/chatbot.js"></script>
 </body>
 </html>
