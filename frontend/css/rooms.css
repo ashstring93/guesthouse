@@ -1,92 +1,126 @@
 /* Rooms Section: Wide Gallery */
 #rooms {
-    background-color: var(--bg-color); /* Light grey bg */
+    background-color: transparent;
     padding: var(--section-padding) 0;
 }
 
 .section-header {
-    text-align: left; /* Modern Left Align */
-    margin-bottom: 60px;
-    padding-left: 10px;
-    border-left: 2px solid var(--text-color); /* Minimal accent */
-    padding-left: 20px;
+    text-align: left;
+    margin-bottom: 54px;
+    padding-left: 26px;
+    border-left: 3px solid rgba(123, 75, 42, 0.55);
+    position: relative;
+}
+
+.section-header::after {
+    content: '';
+    position: absolute;
+    left: -3px;
+    top: 0;
+    width: 3px;
+    height: 32px;
+    background: rgba(47, 74, 58, 0.75);
 }
 
 .section-header h3 {
     font-family: var(--font-en);
-    font-size: 2.5rem;
-    font-weight: 700;
-    letter-spacing: -1px;
+    font-size: clamp(2.2rem, 3.2vw, 3.1rem);
+    font-weight: 600;
+    letter-spacing: -0.02em;
     color: var(--text-color);
     margin-bottom: 10px;
-    text-transform: uppercase;
+    text-transform: none;
 }
 
 .section-header p {
-    font-size: 1rem;
+    font-family: var(--font-kr);
+    font-size: 1.02rem;
     color: var(--text-light);
-    letter-spacing: 1px;
+    letter-spacing: 0.02em;
+    max-width: 52ch;
 }
 
 /* Modern Grid: Less Masonry, More Uniform & Wide */
 .room-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr); /* 2 Wide Columns */
-    gap: 30px;
+    gap: 28px;
 }
 
 .room-item {
     position: relative;
-    height: 400px;
+    height: 410px;
     overflow: hidden;
-    background: #000;
+    border-radius: var(--radius);
+    background: rgba(31, 25, 20, 0.20);
     cursor: pointer;
+    border: 1px solid rgba(31, 25, 20, 0.14);
+    box-shadow: var(--shadow-paper);
 }
 
 /* Feature the first item full width */
 .room-item:first-child {
     grid-column: span 2;
-    height: 600px;
+    height: 620px;
+    border-radius: var(--radius-lg);
+}
+
+.room-item::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(31, 25, 20, 0.60), rgba(31, 25, 20, 0) 55%);
+    opacity: 0.78;
+    transition: opacity 0.35s ease;
+    pointer-events: none;
+}
+
+.room-item:hover::after {
+    opacity: 0.92;
 }
 
 .room-item img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.6s ease, opacity 0.4s ease;
-    opacity: 0.9;
+    transition: transform 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+    filter: saturate(1.05) contrast(1.03);
+    opacity: 1;
 }
 
 .room-item:hover img {
-    transform: scale(1.03);
-    opacity: 0.6;
+    transform: scale(1.04);
 }
 
 /* Minimalist Overlay */
 .room-overlay {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    text-align: center;
-    opacity: 0;
-    transition: opacity 0.4s ease, transform 0.4s ease;
-}
-
-.room-item:hover .room-overlay {
+    left: 22px;
+    bottom: 22px;
+    transform: none;
+    text-align: left;
     opacity: 1;
+    transition: transform 0.35s ease;
 }
 
 .room-overlay span {
     font-family: var(--font-en);
-    font-size: 1.5rem;
-    font-weight: 400;
-    color: #fff;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    display: block;
-    border-bottom: 1px solid rgba(255,255,255,0.5);
-    padding-bottom: 10px;
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: rgba(251, 247, 239, 0.96);
+    letter-spacing: 0.06em;
+    text-transform: none;
+    display: inline-block;
+    padding: 10px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(251, 247, 239, 0.30);
+    background: rgba(31, 25, 20, 0.34);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+.room-item:hover .room-overlay {
+    transform: translateY(-2px);
 }
 
 @media (max-width: 768px) {
@@ -96,16 +130,30 @@
         padding-left: 0;
     }
 
+    .section-header::after {
+        display: none;
+    }
+
     .room-grid {
         grid-template-columns: 1fr;
     }
     
     .room-item:first-child {
         grid-column: span 1;
-        height: 300px;
+        height: 320px;
     }
     
     .room-item {
-        height: 300px;
+        height: 320px;
+    }
+
+    .room-overlay {
+        left: 16px;
+        bottom: 16px;
+    }
+
+    .room-overlay span {
+        font-size: 1.05rem;
+        padding: 9px 12px;
     }
 }

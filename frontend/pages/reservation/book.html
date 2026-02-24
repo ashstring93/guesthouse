@@ -1,0 +1,263 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>물레방아하우스 객실 예약</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/responsive.css">
+    <link rel="stylesheet" href="/css/reservation-hub.css">
+    <link rel="stylesheet" href="/css/payment.css">
+    <link rel="stylesheet" href="/css/chatbot.css">
+</head>
+<body class="payment-page reservation-hub-page">
+    <main class="reservation-hub-main">
+        <div class="reservation-hub-shell">
+            <header class="reservation-hub-top">
+                <a href="/" class="back-link" aria-label="메인으로 돌아가기">← 메인으로</a>
+                <h1>예약 센터</h1>
+                <p>원하는 날짜를 확인하고 예약/결제를 한 번에 진행하세요.</p>
+            </header>
+
+            <nav class="reservation-hub-tabs" aria-label="예약 메뉴">
+                <a href="/reservation/book" class="reservation-hub-tab active" aria-current="page">객실 예약</a>
+                <a href="/reservation/list" class="reservation-hub-tab">예약 현황</a>
+                <a href="/reservation/check" class="reservation-hub-tab">예약 확인</a>
+            </nav>
+
+            <div class="payment-container">
+                <section class="pay-section">
+                    <h2>예약자 정보</h2>
+                    <form id="payment-form" class="pay-form" novalidate>
+                        <input type="hidden" id="booking-checkin-date" name="checkin_date" value="">
+                        <input type="hidden" id="booking-nights" name="nights" value="1">
+                        <input type="hidden" id="booking-adults" name="adults" value="2">
+                        <input type="hidden" id="booking-children" name="children" value="0">
+                        <input type="hidden" id="booking-infants" name="infants" value="0">
+
+                        <div class="form-grid">
+                            <label class="field">
+                                <span>체크인 날짜 <em>*</em></span>
+                                <input type="date" id="booking-checkin" name="checkin_date_visible" required>
+                            </label>
+                            <label class="field">
+                                <span>숙박일수</span>
+                                <select id="booking-nights-visible" name="nights_visible">
+                                    <option value="1" selected>1박</option>
+                                    <option value="2">2박</option>
+                                    <option value="3">3박</option>
+                                    <option value="4">4박</option>
+                                    <option value="5">5박</option>
+                                </select>
+                            </label>
+                            <label class="field">
+                                <span>예약자명 <em>*</em></span>
+                                <input type="text" id="customer-name" name="customer_name" placeholder="홍길동" required>
+                            </label>
+                            <label class="field">
+                                <span>연락처 <em>*</em></span>
+                                <input type="tel" id="customer-phone" name="customer_phone" placeholder="010-0000-0000" required>
+                            </label>
+                            <div class="field field-guest">
+                                <span>인원 선택 <em>*</em></span>
+                                <div class="guest-check-panel">
+                                    <div class="guest-check-head">
+                                        <strong>최대 6인</strong>
+                                        <small id="guest-total-label">총 2인 / 최대 6인</small>
+                                    </div>
+                                    <div class="guest-check-row">
+                                        <div class="guest-check-label">
+                                            <strong>성인</strong>
+                                            <small>추가금 20,000원 / 1인 · 1박</small>
+                                        </div>
+                                        <div class="guest-check-options">
+                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="adults" value="1"><span>1</span></label>
+                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="adults" value="2" checked><span>2</span></label>
+                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="adults" value="3"><span>3</span></label>
+                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="adults" value="4"><span>4</span></label>
+                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="adults" value="5"><span>5</span></label>
+                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="adults" value="6"><span>6</span></label>
+                                        </div>
+                                    </div>
+                                    <div class="guest-check-row">
+                                        <div class="guest-check-label">
+                                            <strong>아동</strong>
+                                            <small>추가금 10,000원 / 1인 · 1박</small>
+                                        </div>
+                                        <div class="guest-check-options">
+                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="children" value="0" checked><span>0</span></label>
+                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="children" value="1"><span>1</span></label>
+                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="children" value="2"><span>2</span></label>
+                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="children" value="3"><span>3</span></label>
+                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="children" value="4"><span>4</span></label>
+                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="children" value="5"><span>5</span></label>
+                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="children" value="6"><span>6</span></label>
+                                        </div>
+                                    </div>
+                                    <div class="guest-check-row">
+                                        <div class="guest-check-label">
+                                            <strong>유아</strong>
+                                            <small>추가금 5,000원 / 1인 · 1박</small>
+                                        </div>
+                                        <div class="guest-check-options">
+                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="infants" value="0" checked><span>0</span></label>
+                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="infants" value="1"><span>1</span></label>
+                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="infants" value="2"><span>2</span></label>
+                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="infants" value="3"><span>3</span></label>
+                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="infants" value="4"><span>4</span></label>
+                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="infants" value="5"><span>5</span></label>
+                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="infants" value="6"><span>6</span></label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field field-options">
+                                <span>옵션 선택</span>
+                                <label class="option-check">
+                                    <input type="checkbox" id="option-bbq" name="bbq">
+                                    <span>바베큐 이용</span>
+                                    <small>추가금 20,000원</small>
+                                </label>
+                                <label class="option-check">
+                                    <input type="checkbox" id="option-pet" name="pet_with">
+                                    <span>반려동물 동반</span>
+                                    <small>추가금 없음</small>
+                                </label>
+                            </div>
+                            <label class="field">
+                                <span>도착예정시간</span>
+                                <select id="arrival-time" name="arrival_time">
+                                    <option value="">선택해 주세요</option>
+                                    <option value="15:00~17:00">15:00~17:00</option>
+                                    <option value="17:00~19:00">17:00~19:00</option>
+                                    <option value="19:00~21:00">19:00~21:00</option>
+                                    <option value="21:00 이후">21:00 이후</option>
+                                </select>
+                            </label>
+                        </div>
+                        <label class="field">
+                            <span>요청사항</span>
+                            <textarea id="request-note" name="request_note" rows="4" placeholder="요청사항을 입력해 주세요."></textarea>
+                        </label>
+                    </form>
+                </section>
+
+                <section class="pay-section">
+                    <div class="terms-head">
+                        <h2>약관동의</h2>
+                        <label class="checkbox-wrap all-agree">
+                            <input type="checkbox" id="agree-all">
+                            <span>모두동의</span>
+                        </label>
+                    </div>
+                    <div class="terms-list">
+                        <div class="term-row">
+                            <label class="checkbox-wrap">
+                                <input type="checkbox" id="agree-policy" class="agree-required" data-term-key="policy">
+                                <span>유의사항/환불규정 동의 (필수)</span>
+                            </label>
+                            <button type="button" class="term-view-btn" data-term-key="policy" aria-haspopup="dialog">내용보기</button>
+                        </div>
+                        <div class="term-row">
+                            <label class="checkbox-wrap">
+                                <input type="checkbox" id="agree-privacy" class="agree-required" data-term-key="privacy">
+                                <span>개인정보 수집 및 이용동의 (필수)</span>
+                            </label>
+                            <button type="button" class="term-view-btn" data-term-key="privacy" aria-haspopup="dialog">내용보기</button>
+                        </div>
+                        <div class="term-row">
+                            <label class="checkbox-wrap">
+                                <input type="checkbox" id="agree-thirdparty" class="agree-required" data-term-key="thirdparty">
+                                <span>개인정보 제3자 제공동의 (필수)</span>
+                            </label>
+                            <button type="button" class="term-view-btn" data-term-key="thirdparty" aria-haspopup="dialog">내용보기</button>
+                        </div>
+                        <div class="term-row">
+                            <label class="checkbox-wrap">
+                                <input type="checkbox" id="agree-adult" class="agree-required" data-term-key="adult">
+                                <span>미성년자 아님 동의 (필수)</span>
+                            </label>
+                            <button type="button" class="term-view-btn" data-term-key="adult" aria-haspopup="dialog">내용보기</button>
+                        </div>
+                    </div>
+                    <p class="terms-version">약관 버전: 2026-02-24-v1</p>
+                </section>
+
+                <section class="pay-section">
+                    <h2>결제 방법</h2>
+                    <div class="payment-methods">
+                        <label class="method-item">
+                            <input type="radio" name="payment_method" value="card" checked>
+                            <span>신용/체크카드</span>
+                        </label>
+                        <label class="method-item">
+                            <input type="radio" name="payment_method" value="naverpay">
+                            <span>Npay</span>
+                        </label>
+                        <label class="method-item">
+                            <input type="radio" name="payment_method" value="tosspay">
+                            <span>토스페이</span>
+                        </label>
+                        <label class="method-item">
+                            <input type="radio" name="payment_method" value="kakaopay">
+                            <span>카카오페이</span>
+                        </label>
+                    </div>
+
+                    <div class="amount-panel">
+                        <div class="amount-row">
+                            <span>총 인원</span>
+                            <strong id="pay-total-guests">2명</strong>
+                        </div>
+                        <div class="amount-row">
+                            <span>객실 요금</span>
+                            <strong id="pay-amount-room">0원</strong>
+                        </div>
+                        <div class="amount-row">
+                            <span>추가 인원</span>
+                            <strong id="pay-extra-guests">0명</strong>
+                        </div>
+                        <div class="amount-row">
+                            <span>추가 인원 요금</span>
+                            <strong id="pay-amount-extra">0원</strong>
+                        </div>
+                        <div class="amount-row">
+                            <span>바베큐 이용 요금</span>
+                            <strong id="pay-amount-bbq">0원</strong>
+                        </div>
+                        <div class="amount-row total">
+                            <span>최종 결제 금액</span>
+                            <strong id="pay-amount-total">0원</strong>
+                        </div>
+                    </div>
+
+                    <p id="payment-status-message" class="payment-status-message" aria-live="polite"></p>
+                    <button type="button" id="pay-submit-btn" class="pay-submit-btn">결제하기</button>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <div id="terms-modal" class="terms-modal" hidden>
+        <div class="terms-modal-backdrop" data-close-terms-modal></div>
+        <div
+            class="terms-modal-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="terms-modal-title"
+            aria-describedby="terms-modal-body"
+        >
+            <div class="terms-modal-header">
+                <h3 id="terms-modal-title">약관 상세</h3>
+                <button type="button" class="terms-modal-close" data-close-terms-modal aria-label="약관 팝업 닫기">닫기</button>
+            </div>
+            <p id="terms-modal-meta" class="terms-modal-meta"></p>
+            <div id="terms-modal-body" class="terms-modal-body"></div>
+        </div>
+    </div>
+
+    <script src="/js/payment.js?v=20260224-1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="/js/chatbot.js"></script>
+</body>
+</html>

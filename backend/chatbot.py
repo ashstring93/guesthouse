@@ -1,162 +1,84 @@
-import os
-from pathlib import Path
-from dotenv import load_dotenv
-from langchain_chroma import Chroma
-from langchain_core.prompts import PromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough
+﻿from pathlib import Path
+from typing import Generator
 from google import genai
-from typing import Optional, List, Any
+from google.genai import types
 
 BACKEND_DIR = Path(__file__).resolve().parent
+KNOWLEDGE_BASE_FILE = BACKEND_DIR / "knowledge_base" / "integrated_accommodation_guide.md"
+DEFAULT_MODEL = "gemini-2.5-flash-lite"
 
 
-def resolve_chroma_persist_dir(raw_path: Optional[str] = None) -> Path:
-    """Resolve Chroma path relative to backend dir when env uses relative path."""
-    if raw_path is None:
-        raw_path = os.getenv("CHROMA_PERSIST_DIRECTORY")
-
-    if not raw_path:
-        return BACKEND_DIR / "chroma_db"
-
-    path = Path(raw_path)
-    if path.is_absolute():
-        return path
-    return BACKEND_DIR / path
+def _load_knowledge_text(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        print(f"Knowledge base file not found: {path}")
+        return "숙소 기본 안내 정보가 준비되지 않았습니다."
 
 
-class GeminiEmbeddings:
-    """google.genai SDK를 위한 LangChain 호환 임베딩 래퍼"""
-
-    def __init__(self, api_key: str, model: str = "gemini-embedding-001"):
-        self.client = genai.Client(api_key=api_key)
-        self.model = model
-
-    def embed_documents(self, texts: List[str]) -> List[List[float]]:
-        embeddings = []
-        for text in texts:
-            result = self.client.models.embed_content(model=self.model, contents=text)
-            embeddings.append(result.embeddings[0].values)
-        return embeddings
-
-    def embed_query(self, text: str) -> List[float]:
-        result = self.client.models.embed_content(model=self.model, contents=text)
-        return result.embeddings[0].values
+def _build_system_instruction(knowledge_text: str) -> str:
+    return (
+        "당신은 전주 물레방아하우스 숙소 안내 챗봇입니다.\n"
+        "아래 숙소 안내 문서를 근거로 정확하고 친절하게 답변하세요.\n\n"
+        "[숙소 안내 문서]\n"
+        f"{knowledge_text}\n\n"
+        "[답변 규칙]\n"
+        "1) 문서에 있는 사실만 우선 답변합니다.\n"
+        "2) 가격, 인원, 시간은 숫자를 분명하게 적습니다.\n"
+        "3) 문서에 없는 내용은 모른다고 말하고 숙소 문의를 안내합니다.\n"
+        "4) 직전 대화 맥락을 반영해 자연스럽게 이어서 답변합니다.\n"
+        "5) 읽기 쉬운 마크다운 문장/목록 형태를 사용합니다.\n"
+    )
 
 
 class GuestHouseChatbot:
-    """물레방아하우스 챗봇"""
+    """Stateful chatbot wrapper with per-session chat history."""
 
-    def __init__(self, api_key: str, chroma_persist_directory: Optional[str] = None):
-        self.api_key = api_key
+    def __init__(self, api_key: str, model: str = DEFAULT_MODEL):
+        if not api_key:
+            raise ValueError("api_key is required")
+
         self.client = genai.Client(api_key=api_key)
-        self.chroma_persist_dir = resolve_chroma_persist_dir(chroma_persist_directory)
+        self.model = model
+        self.knowledge_text = _load_knowledge_text(KNOWLEDGE_BASE_FILE)
+        self.system_instruction = _build_system_instruction(self.knowledge_text)
+        self._sessions: dict[str, object] = {}
 
-        # 임베딩 모델
-        self.embeddings = GeminiEmbeddings(api_key=api_key)
+    def _get_or_create_session(self, session_id: str):
+        session = self._sessions.get(session_id)
+        if session is None:
+            session = self.client.chats.create(
+                model=self.model,
+                config=types.GenerateContentConfig(
+                    system_instruction=self.system_instruction,
+                    temperature=0.7,
+                    max_output_tokens=1024,
+                ),
+            )
+            self._sessions[session_id] = session
+        return session
 
-        # 벡터 DB 로드
-        self.vectorstore = Chroma(
-            persist_directory=str(self.chroma_persist_dir),
-            embedding_function=self.embeddings,
-        )
+    def ask_stream(
+        self,
+        question: str,
+        session_id: str = "default_session",
+    ) -> tuple[Generator[str, None, None], list[str]]:
+        session = self._get_or_create_session(session_id)
+        response_stream = session.send_message_stream(question)
 
-        # Retriever 설정
-        self.retriever = self.vectorstore.as_retriever(
-            search_kwargs={"k": 3}  # 상위 3개 관련 문서 검색
-        )
+        def stream_text() -> Generator[str, None, None]:
+            for chunk in response_stream:
+                text = getattr(chunk, "text", None)
+                if text:
+                    yield text
 
-    def generate_answer(self, question: str, context: str) -> str:
-        """Gemini를 사용하여 답변 생성"""
-        prompt = f"""당신은 물레방아하우스 게스트하우스의 친절한 안내 봇입니다.
-아래 제공된 정보를 바탕으로 게스트의 질문에 정확하고 친절하게 답변해주세요.
+        return stream_text(), [KNOWLEDGE_BASE_FILE.name]
 
-제공된 정보:
-{context}
-
-게스트 질문: {question}
-
-답변 가이드라인:
-1. 친절하고 따뜻한 말투를 사용하세요
-2. 제공된 정보에 기반하여 정확하게 답변하세요
-3. 정보가 불충분하면 솔직하게 말하고, 호스트(010-9243-8495)에게 문의하도록 안내하세요
-4. 가격, 시간 등 구체적인 정보는 정확히 전달하세요
-5. 자연스러운 대화체를 사용하세요
-
-답변:"""
-
-        response = self.client.models.generate_content(
-            model="gemini-2.5-flash-lite",
-            contents=prompt,
-            config={
-                "temperature": 0.7,
-                "max_output_tokens": 1024,
-            },
-        )
-        return response.text
-
-    def ask(self, question: str) -> dict:
-        """질문에 답변"""
-        # 관련 문서 검색
-        docs = self.retriever.invoke(question)
-
-        # 컨텍스트 생성
-        context = "\n\n".join([doc.page_content for doc in docs])
-
-        # 답변 생성
-        answer = self.generate_answer(question, context)
-
+    def ask(self, question: str, session_id: str = "default_session") -> dict:
+        session = self._get_or_create_session(session_id)
+        response = session.send_message(question)
         return {
             "question": question,
-            "answer": answer,
-            "sources": [
-                doc.metadata.get("source", "Unknown").split("\\")[-1]
-                for doc in docs
-            ],
+            "answer": getattr(response, "text", "") or "",
+            "sources": [KNOWLEDGE_BASE_FILE.name],
         }
-
-
-def main():
-    """챗봇 테스트"""
-    # Load env files if present. backend/.env overrides root .env.
-    load_dotenv(BACKEND_DIR.parent / ".env")
-    load_dotenv(BACKEND_DIR / ".env", override=True)
-
-    print("=" * 70)
-    print("🏠 물레방아하우스 AI 챗봇 테스트")
-    print("=" * 70)
-
-    # 챗봇 초기화
-    api_key = os.getenv("GEMINI_API_KEY")
-    chatbot = GuestHouseChatbot(api_key=api_key)
-
-    print("\n✅ 챗봇 초기화 완료!")
-    print(f"   모델: gemini-2.5-flash-lite")
-    print(f"   벡터 DB: ChromaDB")
-    print(f"   검색 범위: 상위 3개 관련 문서\n")
-
-    # 테스트 질문들
-    test_questions = [
-        "체크인 시간이 언제인가요?",
-        "반려동물을 데리고 갈 수 있나요?",
-        "숙박 요금이 얼마인가요?",
-        "한옥마을까지 어떻게 가나요?",
-    ]
-
-    for i, question in enumerate(test_questions, 1):
-        print(f"\n{'='*70}")
-        print(f"질문 {i}: {question}")
-        print(f"{'-'*70}")
-
-        result = chatbot.ask(question)
-
-        print(f"답변:\n{result['answer']}")
-        print(f"\n📚 참고 문서: {', '.join(result['sources'])}")
-
-    print(f"\n{'='*70}")
-    print("✨ 테스트 완료!")
-    print(f"{'='*70}\n")
-
-
-if __name__ == "__main__":
-    main()

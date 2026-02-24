@@ -3,12 +3,39 @@
 @media (max-width: 768px) {
     :root {
         --header-height: 60px;
+        --section-padding: 72px;
+    }
+
+    .container {
+        padding: 0 22px;
     }
 
     /* Header */
     #main-header .container {
         flex-direction: column;
         padding: 10px 20px;
+    }
+
+    .logo a {
+        gap: 8px;
+    }
+
+    .logo-mark {
+        width: 34px;
+        height: 34px;
+    }
+
+    .logo-text {
+        font-size: 1.38rem;
+    }
+
+    #main-header.scrolled .logo-mark {
+        width: 32px;
+        height: 32px;
+    }
+
+    #main-header.scrolled .logo-text {
+        font-size: 1.25rem;
     }
 
     nav ul {
@@ -24,16 +51,42 @@
 
     #main-header.scrolled {
         height: auto;
-        padding-bottom: 10px;
+        padding: 10px 0;
     }
 
     /* Hero */
-    .hero-content h2 {
-        font-size: 2.5rem;
+    #hero {
+        min-height: 620px;
     }
 
-    .hero-content p {
-        font-size: 1rem;
+    .hero-kicker {
+        font-size: 0.78rem;
+        padding: 8px 14px;
+        margin-bottom: 18px;
+    }
+
+    .hero-content h2 {
+        font-size: clamp(2.4rem, 9vw, 3.4rem);
+    }
+
+    .hero-sub {
+        font-size: 1.05rem;
+    }
+
+    .hero-meta {
+        font-size: 0.88rem;
+        letter-spacing: 0.07em;
+        margin-bottom: 18px;
+    }
+
+    .hero-actions {
+        gap: 8px;
+    }
+
+    .hero-btn {
+        min-width: 148px;
+        padding: 10px 14px;
+        font-size: 0.88rem;
     }
 
     /* Rooms */
@@ -48,16 +101,45 @@
     }
 
     /* Reservation */
-    .reservation-content {
+    .reservation-grid {
         grid-template-columns: 1fr;
+        justify-items: center;
+    }
+
+    .calendar-container,
+    .reservation-side {
+        width: 100%;
+        max-width: 540px;
+    }
+
+    .reservation-calendar-shell .flatpickr-calendar.inline {
+        width: 100%;
+        max-width: 420px;
+        padding: 12px 10px;
+        margin: 0 auto;
+    }
+
+    .reservation-calendar-shell .flatpickr-day {
+        max-width: calc(100% / 7);
+        height: 36px;
+        line-height: 36px;
     }
 
     /* General Padding */
     section {
-        padding: 60px 0 !important;
+        padding: 72px 0 !important;
     }
 
     #map {
         height: 360px;
+    }
+
+    .footer-logo-mark {
+        width: 54px;
+        height: 54px;
+    }
+
+    .footer-logo-text {
+        font-size: 1.9rem;
     }
 }

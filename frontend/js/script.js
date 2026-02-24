@@ -1,5 +1,6 @@
-document.addEventListener('DOMContentLoaded', () => {
+﻿document.addEventListener('DOMContentLoaded', () => {
     console.log('Mullebang-a House website loaded.');
+
     const GUESTHOUSE_ADDRESS = '전북특별자치도 전주시 완산구 물레방아3길 19-3';
     const GUESTHOUSE_PARCEL = '태평동 180-3';
     const GUESTHOUSE_POSTCODE = '54998';
@@ -15,7 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return true;
         }
 
-        // Fallback center near guesthouse in case geocoding is unavailable.
         const guesthousePosition = new naver.maps.LatLng(35.82438, 127.13421);
         const map = new naver.maps.Map(mapElement, {
             center: guesthousePosition,
@@ -45,6 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
         infoWindow.open(map, marker);
 
         mapElement.classList.add('map-ready');
+        if (fallback) fallback.style.display = 'none';
 
         return true;
     }
@@ -68,60 +69,79 @@ document.addEventListener('DOMContentLoaded', () => {
                     const description = fallback.querySelector('p');
                     if (title) title.textContent = '지도를 불러오지 못했습니다.';
                     if (description) {
-                        description.textContent = 'Client ID 또는 NCP Web 서비스 URL 설정을 확인해 주세요.';
+                        description.textContent = 'Client ID 또는 NCP Web 서비스 URL 설정을 확인해주세요.';
                     }
                 }
             }
         }, 250);
     }
 
-    // Smooth scrolling for navigation links
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
+    document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+        anchor.addEventListener('click', function onClick(e) {
             e.preventDefault();
             const targetId = this.getAttribute('href');
             if (targetId === '#') return;
-            
+
             const targetElement = document.querySelector(targetId);
             if (targetElement) {
-                targetElement.scrollIntoView({
-                    behavior: 'smooth'
-                });
+                targetElement.scrollIntoView({ behavior: 'smooth' });
             }
         });
     });
 
-    // Hero Slider Logic
+    const revealTargets = document.querySelectorAll('[data-reveal]');
+    if (revealTargets.length > 0) {
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        if (!prefersReducedMotion && 'IntersectionObserver' in window) {
+            const revealObserver = new IntersectionObserver((entries, observer) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) return;
+                    entry.target.classList.add('in-view');
+                    observer.unobserve(entry.target);
+                });
+            }, {
+                threshold: 0.15,
+                rootMargin: '0px 0px -10% 0px'
+            });
+
+            revealTargets.forEach((el) => {
+                el.classList.add('reveal-init');
+                revealObserver.observe(el);
+            });
+        } else {
+            revealTargets.forEach((el) => el.classList.add('in-view'));
+        }
+    }
+
     const heroSlider = document.querySelector('.hero-slider');
-    const images = ['images/1.avif', 'images/6.avif', 'images/9.avif']; // Landscape oriented images
+    const images = ['images/1.avif', 'images/6.avif', 'images/9.avif'];
     let currentSlide = 0;
 
-    // Initialize slides
-    images.forEach((img, index) => {
-        const slide = document.createElement('div');
-        slide.classList.add('slide');
-        slide.style.backgroundImage = `url('${img}')`;
-        if (index === 0) slide.classList.add('active');
-        heroSlider.appendChild(slide);
-    });
+    if (heroSlider) {
+        images.forEach((img, index) => {
+            const slide = document.createElement('div');
+            slide.classList.add('slide');
+            slide.style.backgroundImage = `url('${img}')`;
+            if (index === 0) slide.classList.add('active');
+            heroSlider.appendChild(slide);
+        });
 
-    setInterval(() => {
-        const slides = document.querySelectorAll('.hero-slider .slide');
-        slides[currentSlide].classList.remove('active');
-        currentSlide = (currentSlide + 1) % slides.length;
-        slides[currentSlide].classList.add('active');
-    }, 5000); // Change slide every 5 seconds
+        setInterval(() => {
+            const slides = document.querySelectorAll('.hero-slider .slide');
+            if (slides.length === 0) return;
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (currentSlide + 1) % slides.length;
+            slides[currentSlide].classList.add('active');
+        }, 5000);
+    }
 
-    // Header Scroll Effect & Hero Parallax
     const header = document.getElementById('main-header');
-    const heroSection = document.getElementById('hero');
     const heroContent = document.querySelector('.hero-content');
-    // heroSlider is already defined above
 
     window.addEventListener('scroll', () => {
         const scrollY = window.scrollY;
 
-        // Header logic
         if (header) {
             if (scrollY > 50) {
                 header.classList.add('scrolled');
@@ -130,60 +150,59 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Parallax logic (only effective when hero is in view)
         if (scrollY < window.innerHeight) {
-            // Move text slower than scroll
-            heroContent.style.transform = `translateY(${scrollY * 0.4}px)`;
-            heroContent.style.opacity = 1 - (scrollY / 700); // Fade out text
-
-            // Move background slightly to create depth
-            heroSlider.style.transform = `translateY(${scrollY * 0.2}px)`;
+            if (heroContent) {
+                heroContent.style.transform = `translateY(${scrollY * 0.4}px)`;
+                heroContent.style.opacity = String(1 - (scrollY / 700));
+            }
+            if (heroSlider) {
+                heroSlider.style.transform = `translateY(${scrollY * 0.2}px)`;
+            }
         }
     });
 
-    // Reviews Data & Rendering
     const reviewsData = [
         {
-            name: "김민지",
-            date: "2024.01.15",
+            name: '김민지',
+            date: '2024.01.15',
             rating: 5,
-            text: "전주 한옥마을과 가까워서 너무 좋았어요. 숙소도 너무 예쁘고 따뜻했습니다. 마당에서 커피 한잔하는데 정말 힐링되더라고요. 다음에 또 오고 싶어요!"
+            text: '한옥 감성이 정말 좋았고 마당이 넓어서 아이와 함께 머물기 좋았어요. 청소 상태도 매우 깔끔했습니다.'
         },
         {
-            name: "Lee So-young",
-            date: "2023.12.28",
+            name: 'Lee So-young',
+            date: '2023.12.28',
             rating: 5,
-            text: "The perfect place to stay in Jeonju. It was clean, cozy, and the host was very kind. The garden is beautiful even in winter."
+            text: 'The perfect place to stay in Jeonju. It was clean, cozy, and the host was very kind. The garden is beautiful even in winter.'
         },
         {
-            name: "박준형",
-            date: "2023.12.10",
+            name: '박지은',
+            date: '2023.12.10',
             rating: 5,
-            text: "가족들과 함께 머물었는데 방도 2개라 넉넉하고 침구도 너무 편안했습니다. 아이들이 마당에서 뛰어노는 걸 보니 좋았네요. 강력 추천합니다."
+            text: '반려견과 함께 머물기에 좋았고, 주변이 조용해서 쉬기에 딱이었습니다. 다시 방문하고 싶어요.'
         },
         {
-            name: "Choi Ji-hoon",
-            date: "2023.11.05",
+            name: 'Choi Ji-hoon',
+            date: '2023.11.05',
             rating: 4,
-            text: "도심 속에 이런 조용한 공간이 있다니 놀라웠어요. 인테리어 감성도 너무 좋고 사진 찍기 좋습니다. 주차도 편했어요."
+            text: '객리단길과 가깝고 접근성이 좋았습니다. 실내가 아늑하고 편해서 하룻밤 잘 쉬었어요.'
         },
         {
-            name: "Sarah Jenkins",
-            date: "2023.10.20",
+            name: 'Sarah Jenkins',
+            date: '2023.10.20',
             rating: 5,
-            text: "Absolutely loved my stay! The location is fantastic, just a short walk to the main attractions but quiet enough to relax. The house itself is charming."
+            text: 'Absolutely loved my stay! The location is fantastic, just a short walk to the main attractions but quiet enough to relax. The house itself is charming.'
         }
     ];
 
     const reviewsSlider = document.querySelector('.reviews-slider');
-    
+
     if (reviewsSlider) {
-        reviewsData.forEach(review => {
+        reviewsData.forEach((review) => {
             const card = document.createElement('div');
             card.classList.add('review-card');
-            
+
             const stars = '★'.repeat(review.rating) + '☆'.repeat(5 - review.rating);
-            
+
             card.innerHTML = `
                 <div class="review-header">
                     <span class="reviewer-name">${review.name}</span>
@@ -192,33 +211,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="review-stars">${stars}</div>
                 <div class="review-text">${review.text}</div>
             `;
-            
+
             reviewsSlider.appendChild(card);
         });
 
-        // Simple Auto Scroll for Reviews
-        let scrollAmount = 0;
         const scrollSpeed = 0.5;
         let scrollDirection = 1;
-        
+
         function autoScrollReviews() {
-            if (reviewsSlider.matches(':hover')) return; // Pause on hover
-            
+            if (reviewsSlider.matches(':hover')) return;
+
             reviewsSlider.scrollLeft += scrollSpeed * scrollDirection;
-            
-            // Bounce back at ends (optional, or loop)
-            // For simple loop effect, we can just reset if at end, but user scrolling might interfere.
-            // Let's just scroll back and forth for now or infinite scroll if cloned.
-            // Since cloning logic is complex for this step, let's just do a simple smooth scroll that reverses or resets.
-            
+
             if (reviewsSlider.scrollLeft >= (reviewsSlider.scrollWidth - reviewsSlider.clientWidth)) {
                 scrollDirection = -1;
             } else if (reviewsSlider.scrollLeft <= 0) {
                 scrollDirection = 1;
             }
         }
-        
-        // Use AnimationFrame for smoother scroll? Or Interval. Interval 20ms is fine for simple.
+
         setInterval(autoScrollReviews, 20);
     }
 });

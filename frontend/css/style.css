@@ -1,13 +1,42 @@
+@font-face {
+    font-family: 'HakgyoansimWoojuR';
+    src: url('../fonts/HakgyoansimWoojuR.ttf') format('truetype'),
+         url('../fonts/HakgyoansimWoojuR.otf') format('opentype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
 :root {
-    --primary-color: #FFFFFF;
-    --text-color: #2c2c2c; /* Slightly softer black */
-    --accent-color: #556B2F; /* Dark Olive Green for more sophistication */
-    --bg-color: #FDFDFD; /* Warmer white */
+    /* Hanok-inspired theme: warm hanji paper + timber + ink */
+    --bg-color: #fbf7ef;
+    --bg-color-2: #f3eadb;
+    --panel-color: rgba(255, 255, 255, 0.72);
+
+    --text-color: #1f1914; /* warm ink */
+    --text-light: rgba(31, 25, 20, 0.68);
+    --line-color: rgba(31, 25, 20, 0.14);
+
+    --accent-color: #7b4b2a; /* timber */
+    --accent-pine: #2f4a3a;
+    --accent-persimmon: #c26a3b;
+    --primary-color: var(--accent-color);
+
     --header-height: 90px;
-    --font-heading: 'Noto Serif KR', serif; /* Changed to Serif */
-    --font-eng: 'Montserrat', sans-serif;
-    --font-body: 'Noto Sans KR', sans-serif;
-    --section-padding: 140px; /* Global padding variable */
+    --section-padding: 120px;
+
+    --radius: 18px;
+    --radius-lg: 28px;
+    --shadow-soft: 0 14px 40px rgba(31, 25, 20, 0.10);
+    --shadow-paper: 0 8px 18px rgba(31, 25, 20, 0.08);
+
+    --font-heading: 'HakgyoansimWoojuR', 'Noto Sans KR', sans-serif;
+    --font-kr: 'HakgyoansimWoojuR', 'Noto Sans KR', sans-serif;
+    --font-body: 'HakgyoansimWoojuR', 'Noto Sans KR', sans-serif;
+    --font-en: 'HakgyoansimWoojuR', 'Noto Sans KR', sans-serif;
+
+    /* Backward-compat aliases (some section CSS used older names) */
+    --font-eng: var(--font-en);
 }
 
 * {
@@ -16,12 +45,35 @@
     box-sizing: border-box;
 }
 
+/* Desktop typography scale-up: keep mobile unchanged, improve PC readability */
+@media (min-width: 1024px) {
+    html {
+        font-size: 22px;
+    }
+}
+
 body {
     font-family: var(--font-body);
     color: var(--text-color);
     background-color: var(--bg-color);
-    line-height: 1.8; /* Increased line height for readability */
-    word-break: keep-all; /* Better Korean text wrapping */
+    line-height: 1.85;
+    word-break: keep-all;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+
+    /* Subtle paper texture + warm ink wash */
+    background-image:
+        radial-gradient(1200px 900px at 12% -10%, rgba(194, 106, 59, 0.18), transparent 55%),
+        radial-gradient(1000px 700px at 92% 6%, rgba(47, 74, 58, 0.16), transparent 60%),
+        radial-gradient(900px 650px at 50% 120%, rgba(123, 75, 42, 0.12), transparent 60%),
+        repeating-linear-gradient(90deg, rgba(31, 25, 20, 0.025) 0 1px, transparent 1px 18px),
+        repeating-linear-gradient(0deg, rgba(31, 25, 20, 0.02) 0 1px, transparent 1px 24px);
+    background-attachment: fixed;
+}
+
+::selection {
+    background: rgba(194, 106, 59, 0.30);
+    color: var(--text-color);
 }
 
 a {
@@ -36,36 +88,40 @@ ul {
 
 /* Elegant Section Divider */
 .section-divider {
-    width: 60%; /* Not full width for elegance */
+    width: min(720px, 70%);
     height: 1px;
-    background: linear-gradient(to right, transparent, var(--accent-color), transparent);
-    opacity: 0.4;
+    background: linear-gradient(to right, transparent, rgba(31, 25, 20, 0.22), transparent);
+    opacity: 1;
     margin: 0 auto;
     position: relative;
 }
 
-/* Optional decorative dot in center */
+/* Decorative diamond in center */
 .section-divider::after {
-    content: '◇'; /* Diamond symbol */
+    content: '';
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -55%);
-    background-color: var(--bg-color); /* Matches bg to hide line behind */
-    padding: 0 15px;
-    color: var(--accent-color);
-    font-size: 0.8rem;
-    font-family: serif;
+    width: 10px;
+    height: 10px;
+    transform: translate(-50%, -50%) rotate(45deg);
+    background: rgba(251, 247, 239, 0.95);
+    border: 1px solid rgba(31, 25, 20, 0.22);
+    box-shadow: 0 0 0 10px rgba(251, 247, 239, 0.55);
 }
 
 section {
-    padding: var(--section-padding) 0; /* Huge padding for luxury feel */
+    padding: var(--section-padding) 0;
+}
+
+section[id] {
+    scroll-margin-top: 110px; /* account for fixed header */
 }
 
 .container {
-    max-width: 1280px; /* Slightly wider */
+    max-width: 1320px;
     margin: 0 auto;
-    padding: 0 40px;
+    padding: 0 32px;
 }
 
 /* Header */
@@ -75,18 +131,19 @@ section {
     left: 0;
     width: 100%;
     z-index: 1000;
-    padding: 25px 0;
-    transition: all 0.4s ease;
-    /* Dark gradient for "shading" effect on hero */
-    background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%);
+    padding: 24px 0;
+    transition: background-color 0.35s ease, box-shadow 0.35s ease, color 0.35s ease, padding 0.35s ease;
+    background: linear-gradient(to bottom, rgba(31, 25, 20, 0.78) 0%, rgba(31, 25, 20, 0) 100%);
     color: #fff;
 }
 
 #main-header.scrolled {
-    background-color: rgba(255, 255, 255, 0.98);
-    height: 70px;
-    padding: 0; /* Reset padding to center vertically with flex */
-    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    background-color: rgba(251, 247, 239, 0.88);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 10px 0;
+    box-shadow: 0 10px 30px rgba(31, 25, 20, 0.10);
+    border-bottom: 1px solid var(--line-color);
     color: var(--text-color);
 }
 
@@ -97,20 +154,55 @@ section {
     width: 100%;
 }
 
+.logo {
+    margin: 0;
+    line-height: 1;
+}
+
 .logo a {
-    font-family: var(--font-heading); /* Noto Serif KR */
-    font-size: 2rem;
-    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
     color: #fff;
+    text-shadow: 0 8px 26px rgba(0, 0, 0, 0.25);
+    transition: color 0.4s ease, text-shadow 0.4s ease;
+}
+
+.logo-mark {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+    transition: transform 0.35s ease, box-shadow 0.35s ease, width 0.35s ease, height 0.35s ease;
+}
+
+.logo-text {
+    font-family: var(--font-heading);
+    font-size: 2.1rem;
+    font-weight: 400;
     letter-spacing: -0.02em;
-    text-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    transition: color 0.4s ease, font-size 0.4s ease;
+    color: currentColor;
+    transition: font-size 0.35s ease;
+}
+
+.logo a:hover .logo-mark {
+    transform: translateY(-1px) scale(1.02);
 }
 
 #main-header.scrolled .logo a {
     color: var(--text-color);
-    font-size: 1.6rem;
     text-shadow: none;
+}
+
+#main-header.scrolled .logo-mark {
+    width: 38px;
+    height: 38px;
+    box-shadow: 0 6px 14px rgba(31, 25, 20, 0.12);
+}
+
+#main-header.scrolled .logo-text {
+    font-size: 1.65rem;
 }
 
 nav ul {
@@ -119,17 +211,31 @@ nav ul {
 }
 
 nav a {
-    font-weight: 600;
+    position: relative;
+    font-weight: 500;
     color: #fff; /* Start white */
-    text-shadow: 0 1px 3px rgba(0,0,0,0.3);
-    transition: color 0.3s;
-    font-size: 1rem;
-    letter-spacing: 0.5px;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.35);
+    transition: color 0.25s ease;
+    font-size: 0.98rem;
+    letter-spacing: 0.06em;
 }
 
-#main-header .logo a {
-    color: #fff;
-    transition: color 0.3s;
+nav a::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -8px;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.55;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.25s ease;
+}
+
+nav a:hover::after {
+    transform: scaleX(1);
 }
 
 #main-header.scrolled nav a,
@@ -139,13 +245,14 @@ nav a {
 }
 
 nav a:hover {
-    color: var(--accent-color) !important;
+    color: var(--accent-persimmon) !important;
 }
 
 /* Hero Section */
 #hero {
     position: relative;
     height: 100vh;
+    min-height: 720px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -157,7 +264,7 @@ nav a:hover {
 .hero-slider {
     position: absolute;
     inset: 0;
-    z-index: -1;
+    z-index: -2;
     will-change: transform;
 }
 
@@ -180,15 +287,29 @@ nav a:hover {
     transform: scale(1.05); /* Subtle zoom effect */
 }
 
-/* Gradient Overlay for better text visibility */
+/* Overlays: hanji lattice + warm vignette for readability */
+#hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(
+            to bottom,
+            rgba(31, 25, 20, 0.55) 0%,
+            rgba(31, 25, 20, 0.08) 45%,
+            rgba(31, 25, 20, 0.62) 100%
+        ),
+        repeating-linear-gradient(90deg, rgba(251, 247, 239, 0.055) 0 1px, transparent 1px 28px),
+        repeating-linear-gradient(0deg, rgba(251, 247, 239, 0.040) 0 1px, transparent 1px 34px);
+    z-index: 0;
+    pointer-events: none;
+}
+
 #hero::after {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0) 50%, rgba(0,0,0,0.3) 100%);
+    inset: -12%;
+    background: radial-gradient(circle at 50% 40%, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.55) 88%);
     z-index: 0;
     pointer-events: none;
 }
@@ -196,6 +317,7 @@ nav a:hover {
 .hero-content {
     z-index: 1;
     padding: 0 40px;
+    max-width: 1180px;
     animation: fadeInUp 1.5s ease-out; /* Slower, more elegant */
 }
 
@@ -203,7 +325,7 @@ nav a:hover {
     from {
         opacity: 0;
         transform: translateY(40px);
-        filter: blur(5px); /* Start slightly blurred */
+        filter: blur(8px);
     }
     to {
         opacity: 1;
@@ -212,33 +334,182 @@ nav a:hover {
     }
 }
 
+.hero-kicker {
+    display: inline-block;
+    font-family: var(--font-en);
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    font-size: 0.95rem;
+    padding: 10px 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(251, 247, 239, 0.55);
+    background: rgba(31, 25, 20, 0.26);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+    margin-bottom: 26px;
+}
+
 .hero-content h2 {
-    font-family: var(--font-eng); /* Use Montserrat for "Nature & Relax" for modern feel, or Serif. Let's stick to Plan: "Noto Serif KR for headings". But English main title looks often better in Sans or elegant Serif. Let's try Serif for that "Hanok" vibe requested. */
     font-family: var(--font-heading);
-    font-size: 5.5rem; /* Massive size */
-    margin-bottom: 30px;
-    font-weight: 400; /* Lighter weight for elegance */
-    letter-spacing: -0.03em;
-    text-shadow: 0 4px 20px rgba(0,0,0,0.3);
-    line-height: 1.1;
+    font-size: clamp(2.2rem, 4.8vw, 4.0rem);
+    margin-bottom: 18px;
+    font-weight: 400;
+    letter-spacing: -0.015em;
+    text-shadow: 0 10px 36px rgba(0, 0, 0, 0.35);
+    line-height: 1.18;
 }
 
-.hero-content p {
-    font-family: var(--font-body);
-    font-size: 1.6rem;
-    font-weight: 300;
-    text-shadow: 0 2px 10px rgba(0,0,0,0.3);
-    opacity: 0.95;
-    letter-spacing: 0.05em;
-}
-
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
+@media (min-width: 1100px) {
+    .hero-content h2 {
+        white-space: nowrap;
     }
-    to {
+}
+
+.hero-sub {
+    font-family: var(--font-kr);
+    font-size: clamp(1.03rem, 1.8vw, 1.32rem);
+    font-weight: 400;
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.32);
+    opacity: 0.96;
+    letter-spacing: 0.02em;
+    margin-bottom: 14px;
+}
+
+.hero-meta {
+    font-size: clamp(0.92rem, 1.3vw, 1.02rem);
+    letter-spacing: 0.1em;
+    color: rgba(251, 247, 239, 0.88);
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
+    margin-bottom: 26px;
+}
+
+.hero-actions {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.hero-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 170px;
+    padding: 11px 18px;
+    border-radius: 999px;
+    font-size: 0.98rem;
+    letter-spacing: 0.04em;
+    font-weight: 500;
+    transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    text-decoration: none;
+}
+
+.hero-btn:hover {
+    transform: translateY(-1px);
+}
+
+.hero-btn-primary {
+    color: #1f1914;
+    background: rgba(251, 247, 239, 0.92);
+    border: 1px solid rgba(251, 247, 239, 0.95);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+}
+
+.hero-btn-primary:hover {
+    background: rgba(251, 247, 239, 1);
+}
+
+.hero-btn-ghost {
+    color: rgba(251, 247, 239, 0.96);
+    background: rgba(31, 25, 20, 0.24);
+    border: 1px solid rgba(251, 247, 239, 0.42);
+}
+
+.hero-btn-ghost:hover {
+    background: rgba(31, 25, 20, 0.34);
+    border-color: rgba(251, 247, 239, 0.65);
+}
+
+/* Scroll reveals (JS adds .reveal-init on targets) */
+[data-reveal].reveal-init {
+    opacity: 0;
+    transform: translateY(18px);
+    filter: blur(8px);
+    transition: opacity 900ms ease, transform 900ms ease, filter 900ms ease;
+    will-change: opacity, transform, filter;
+}
+
+[data-reveal].reveal-init.in-view {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-reveal].reveal-init {
         opacity: 1;
-        transform: translateY(0);
+        transform: none;
+        filter: none;
+        transition: none;
     }
+}
+
+@media (max-width: 768px) {
+    body {
+        background-attachment: scroll;
+    }
+}
+
+/* Lightbox Image Gallery */
+.lightbox {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.85);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+.lightbox.visible {
+    opacity: 1;
+}
+
+.lightbox img {
+    max-width: 90%;
+    max-height: 90vh;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    transform: scale(0.95);
+    transition: transform 0.3s ease;
+}
+
+.lightbox.visible img {
+    transform: scale(1);
+}
+
+.lightbox-close {
+    position: absolute;
+    top: 30px;
+    right: 40px;
+    color: white;
+    font-size: 40px;
+    font-weight: 300;
+    cursor: pointer;
+    transition: color 0.2s ease, transform 0.2s ease;
+    user-select: none;
+}
+
+.lightbox-close:hover {
+    color: var(--accent-persimmon);
+    transform: scale(1.1);
 }
