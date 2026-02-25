@@ -1,5 +1,5 @@
 ﻿document.addEventListener('DOMContentLoaded', () => {
-    console.log('Mullebang-a House website loaded.');
+    console.log('Watermill House website loaded.');
 
     const GUESTHOUSE_ADDRESS = '전북특별자치도 전주시 완산구 물레방아3길 19-3';
     const GUESTHOUSE_PARCEL = '태평동 180-3';
@@ -29,13 +29,13 @@
         const marker = new naver.maps.Marker({
             position: guesthousePosition,
             map,
-            title: 'Mullebang-a House'
+            title: 'Watermill House'
         });
 
         const infoWindow = new naver.maps.InfoWindow({
             content: `
                 <div style="padding:10px 12px;font-size:13px;line-height:1.5;">
-                    <strong>Mullebang-a House</strong><br>
+                    <strong>Watermill House</strong><br>
                     ${GUESTHOUSE_ADDRESS}<br>
                     지번: ${GUESTHOUSE_PARCEL}<br>
                     우편번호: ${GUESTHOUSE_POSTCODE}

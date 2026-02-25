@@ -257,7 +257,7 @@
         });
     }
 
-    window.MullebangReservationCalendar = {
+    window.WatermillReservationCalendar = {
         initAvailabilityCalendar,
     };
 })();

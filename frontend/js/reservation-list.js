@@ -1,7 +1,7 @@
 ﻿document.addEventListener('DOMContentLoaded', () => {
-    if (!window.MullebangReservationCalendar) return;
+    if (!window.WatermillReservationCalendar) return;
 
-    window.MullebangReservationCalendar.initAvailabilityCalendar({
+    window.WatermillReservationCalendar.initAvailabilityCalendar({
         calendarId: 'reservation-list-calendar',
         selectedDateId: 'reservation-list-selected-date',
         statusId: 'reservation-list-status',

@@ -3,7 +3,7 @@
  * 諛깆뿏??API? ?듭떊?섏뿬 ??뷀삎 ?명꽣?섏씠???쒓났
  */
 
-class MullebangChatbot {
+class WatermillChatbot {
     constructor(apiUrl = '') {
         this.apiUrl = apiUrl;
         this.conversationId = this.generateId();
@@ -302,7 +302,7 @@ class MullebangChatbot {
 // ?섏씠吏 濡쒕뱶 ??梨쀫큸 珥덇린??
 document.addEventListener('DOMContentLoaded', () => {
     // ?곷? 寃쎈줈 ?ъ슜???꾪빐 apiUrl ?놁씠 珥덇린??
-    window.chatbot = new MullebangChatbot();
+    window.chatbot = new WatermillChatbot();
     console.log('물레방아하우스 챗봇이 준비되었습니다!');
 });
 
