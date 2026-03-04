@@ -1,7 +1,7 @@
 @font-face {
     font-family: 'HakgyoansimWoojuR';
     src: url('../fonts/HakgyoansimWoojuR.ttf') format('truetype'),
-         url('../fonts/HakgyoansimWoojuR.otf') format('opentype');
+        url('../fonts/HakgyoansimWoojuR.otf') format('opentype');
     font-weight: 400;
     font-style: normal;
     font-display: swap;
@@ -13,11 +13,13 @@
     --bg-color-2: #f3eadb;
     --panel-color: rgba(255, 255, 255, 0.72);
 
-    --text-color: #1f1914; /* warm ink */
+    --text-color: #1f1914;
+    /* warm ink */
     --text-light: rgba(31, 25, 20, 0.68);
     --line-color: rgba(31, 25, 20, 0.14);
 
-    --accent-color: #7b4b2a; /* timber */
+    --accent-color: #7b4b2a;
+    /* timber */
     --accent-pine: #2f4a3a;
     --accent-persimmon: #c26a3b;
     --primary-color: var(--accent-color);
@@ -115,7 +117,8 @@ section {
 }
 
 section[id] {
-    scroll-margin-top: 110px; /* account for fixed header */
+    scroll-margin-top: 110px;
+    /* account for fixed header */
 }
 
 .container {
@@ -213,8 +216,9 @@ nav ul {
 nav a {
     position: relative;
     font-weight: 500;
-    color: #fff; /* Start white */
-    text-shadow: 0 1px 3px rgba(0,0,0,0.35);
+    color: #fff;
+    /* Start white */
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
     transition: color 0.25s ease;
     font-size: 0.98rem;
     letter-spacing: 0.06em;
@@ -240,7 +244,8 @@ nav a:hover::after {
 
 #main-header.scrolled nav a,
 #main-header.scrolled .logo a {
-    color: var(--text-color); /* Dark text on white background */
+    color: var(--text-color);
+    /* Dark text on white background */
     text-shadow: none;
 }
 
@@ -284,7 +289,8 @@ nav a:hover {
 
 .hero-slider .slide.active {
     opacity: 1;
-    transform: scale(1.05); /* Subtle zoom effect */
+    transform: scale(1.05);
+    /* Subtle zoom effect */
 }
 
 /* Overlays: hanji lattice + warm vignette for readability */
@@ -293,12 +299,10 @@ nav a:hover {
     position: absolute;
     inset: 0;
     background:
-        linear-gradient(
-            to bottom,
+        linear-gradient(to bottom,
             rgba(31, 25, 20, 0.55) 0%,
             rgba(31, 25, 20, 0.08) 45%,
-            rgba(31, 25, 20, 0.62) 100%
-        ),
+            rgba(31, 25, 20, 0.62) 100%),
         repeating-linear-gradient(90deg, rgba(251, 247, 239, 0.055) 0 1px, transparent 1px 28px),
         repeating-linear-gradient(0deg, rgba(251, 247, 239, 0.040) 0 1px, transparent 1px 34px);
     z-index: 0;
@@ -318,7 +322,8 @@ nav a:hover {
     z-index: 1;
     padding: 0 40px;
     max-width: 1180px;
-    animation: fadeInUp 1.5s ease-out; /* Slower, more elegant */
+    animation: fadeInUp 1.5s ease-out;
+    /* Slower, more elegant */
 }
 
 @keyframes fadeInUp {
@@ -327,6 +332,7 @@ nav a:hover {
         transform: translateY(40px);
         filter: blur(8px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -512,4 +518,54 @@ nav a:hover {
 .lightbox-close:hover {
     color: var(--accent-persimmon);
     transform: scale(1.1);
+}
+
+/* Global Flatpickr Overrides for Holidays & Weekends */
+.flatpickr-calendar .flatpickr-weekday:nth-child(1) {
+    color: #d14a4a;
+    /* Sunday */
+}
+
+.flatpickr-calendar .flatpickr-weekday:nth-child(7) {
+    color: #3f6fca;
+    /* Saturday */
+}
+
+.flatpickr-calendar .flatpickr-day.day-sunday {
+    color: #d14a4a;
+    font-weight: 600;
+}
+
+.flatpickr-calendar .flatpickr-day.day-saturday {
+    color: #3f6fca;
+    font-weight: 600;
+}
+
+.flatpickr-calendar .flatpickr-day.day-holiday {
+    color: #d14a4a;
+    font-weight: 700;
+}
+
+.flatpickr-calendar .flatpickr-day.flatpickr-disabled.day-sunday,
+.flatpickr-calendar .flatpickr-day.flatpickr-disabled.day-holiday,
+.flatpickr-calendar .flatpickr-day.status-booked.day-sunday,
+.flatpickr-calendar .flatpickr-day.status-booked.day-holiday {
+    color: rgba(209, 74, 74, 0.4);
+}
+
+.flatpickr-calendar .flatpickr-day.flatpickr-disabled.day-saturday,
+.flatpickr-calendar .flatpickr-day.status-booked.day-saturday {
+    color: rgba(63, 111, 202, 0.4);
+}
+
+.flatpickr-calendar .flatpickr-day.selected.day-sunday,
+.flatpickr-calendar .flatpickr-day.selected.day-saturday,
+.flatpickr-calendar .flatpickr-day.selected.day-holiday,
+.flatpickr-calendar .flatpickr-day.startRange.day-sunday,
+.flatpickr-calendar .flatpickr-day.startRange.day-saturday,
+.flatpickr-calendar .flatpickr-day.startRange.day-holiday,
+.flatpickr-calendar .flatpickr-day.endRange.day-sunday,
+.flatpickr-calendar .flatpickr-day.endRange.day-saturday,
+.flatpickr-calendar .flatpickr-day.endRange.day-holiday {
+    color: rgba(251, 247, 239, 0.98);
 }

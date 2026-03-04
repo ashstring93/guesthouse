@@ -108,8 +108,10 @@
 }
 
 .field {
-    display: grid;
+    display: flex;
+    flex-direction: column;
     gap: 7px;
+    height: 100%;
 }
 
 .field span {
@@ -132,6 +134,7 @@
     font: inherit;
     color: var(--text-color);
     padding: 11px 12px;
+    flex: 1;
 }
 
 .field textarea {
@@ -224,7 +227,7 @@
     cursor: pointer;
 }
 
-.guest-check-item input:checked + span,
+.guest-check-item input:checked+span,
 .guest-check-item.active span {
     border-color: rgba(47, 74, 58, 0.55);
     background: rgba(47, 74, 58, 0.08);
@@ -235,6 +238,7 @@
     grid-column: span 1;
     display: grid;
     gap: 7px;
+    align-content: start;
 }
 
 .option-check {
@@ -504,6 +508,7 @@ body.modal-open {
 }
 
 @media (max-width: 900px) {
+
     .summary-head,
     .summary-row {
         grid-template-columns: 1fr 1fr;

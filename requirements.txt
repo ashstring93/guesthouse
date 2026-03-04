@@ -2,3 +2,4 @@
 uvicorn
 python-dotenv
 google-genai
+holidays

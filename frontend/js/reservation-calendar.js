@@ -71,6 +71,7 @@
         rangeEnd.setDate(rangeEnd.getDate() + 540);
 
         const bookedDates = new Set();
+        const holidayDates = new Set(); // Added a set for holidays
 
         const setStatus = (text, statusType) => {
             if (!statusElement) return;
@@ -183,16 +184,28 @@
         };
 
         try {
-            const availability = await fetchJson(
-                withAppBase(
-                    `/api/calendar/availability?start=${toYmd(today)}&end=${toYmd(rangeEnd)}`
-                )
-            );
+            // Fetch availability and config in parallel
+            const [availability, calendarConfig] = await Promise.all([
+                fetchJson(
+                    withAppBase(
+                        `/api/calendar/availability?start=${toYmd(today)}&end=${toYmd(rangeEnd)}`
+                    )
+                ).catch(() => ({ booked_dates: [] })),
+                fetchJson(withAppBase(`/api/calendar/config`)).catch(() => ({ holiday_dates: [] }))
+            ]);
 
             if (Array.isArray(availability.booked_dates)) {
                 availability.booked_dates.forEach((value) => {
                     if (typeof value === 'string' && value.trim()) {
                         bookedDates.add(value.trim());
+                    }
+                });
+            }
+
+            if (Array.isArray(calendarConfig.holiday_dates)) {
+                calendarConfig.holiday_dates.forEach((value) => {
+                    if (typeof value === 'string' && value.trim()) {
+                        holidayDates.add(value.trim());
                     }
                 });
             }
@@ -222,6 +235,12 @@
                 const day = dayElement.dateObj.getDay();
                 if (day === 0) dayElement.classList.add('day-sunday');
                 if (day === 6) dayElement.classList.add('day-saturday');
+
+                // Check for holiday and add class
+                const ymd = toYmd(dayElement.dateObj);
+                if (holidayDates.has(ymd)) {
+                    dayElement.classList.add('day-holiday');
+                }
 
                 if (isBooked(dayElement.dateObj)) {
                     dayElement.classList.add('status-booked');

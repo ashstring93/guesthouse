@@ -8,6 +8,8 @@
 - 예약 현황 달력 조회 (`/reservation/list`)
 - 예약/결제 준비 페이지 (`/reservation/book`)
 - 예약 확인 조회 (`/reservation/check`)
+- 토스페이먼츠 V2 결제 연동 (성공/실패/취소 처리)
+- 관리자 대시보드 (예약 목록, 결제 취소)
 - Gemini 2.5 Flash-Lite 기반 스트리밍 챗봇 (`/api/chat`)
 - SQLite 기반 예약/약관동의/챗로그 저장
 
@@ -16,24 +18,66 @@
 ```text
 .
 ├─ backend/
-│  ├─ server.py
-│  ├─ chatbot.py
-│  ├─ .env.example
-│  └─ knowledge_base/
+│  ├─ server.py               # 메인 앱 (FastAPI 생성, 라우터 등록)
+│  ├─ config.py               # 환경변수, 상수, 경로 설정
+│  ├─ database.py             # DB 초기화, 커넥션, 저장/조회
+│  ├─ models.py               # Pydantic 요청 모델
+│  ├─ utils.py                # 날짜 파싱, 요금 계산, 환불, 토스 인증
+│  ├─ chatbot.py              # Gemini 기반 RAG 챗봇
+│  ├─ routes/
+│  │  ├─ pages.py             # HTML 페이지 서빙, favicon, 헬스체크
+│  │  ├─ payment.py           # 결제 API (견적, 준비, 성공/실패 콜백)
+│  │  ├─ reservation.py       # 캘린더 설정, 마감일, 예약 조회
+│  │  ├─ admin.py             # 관리자 API (예약 목록, 결제 취소)
+│  │  └─ chat.py              # 챗봇 스트리밍 응답
+│  ├─ knowledge_base/
+│  │  └─ integrated_accommodation_guide.md  # 챗봇 RAG용 숙소 안내 문서
+│  ├─ .env                    # 환경변수 (Git 제외)
+│  └─ .env.example            # 환경변수 템플릿
+│
 ├─ frontend/
-│  ├─ index.html
+│  ├─ index.html              # 메인 페이지
 │  ├─ css/
+│  │  ├─ style.css            # 공통 레이아웃, 헤더, 네비게이션
+│  │  ├─ about.css            # 숙소 소개 섹션
+│  │  ├─ rooms.css            # 객실 소개 섹션
+│  │  ├─ reviews.css          # 리뷰 섹션
+│  │  ├─ chatbot.css          # 챗봇 위젯
+│  │  ├─ payment.css          # 예약/결제 페이지
+│  │  ├─ reservation.css      # 예약 캘린더/확인 페이지
+│  │  ├─ reservation-hub.css  # 예약 현황 페이지
+│  │  ├─ footer.css           # 푸터
+│  │  └─ responsive.css       # 반응형 미디어쿼리
 │  ├─ js/
-│  ├─ images/
-│  └─ pages/reservation/
-└─ requirements.txt
+│  │  ├─ script.js            # 메인 페이지 (네이버 지도, 슬라이더)
+│  │  ├─ chatbot.js           # 챗봇 위젯 로직
+│  │  ├─ payment.js           # 예약/결제 로직 (토스 위젯 연동)
+│  │  ├─ reservation-calendar.js  # 예약 캘린더 컴포넌트
+│  │  ├─ reservation-check.js     # 예약 조회 로직
+│  │  └─ reservation-list.js      # 예약 현황 초기화
+│  ├─ images/                 # 숙소 사진, 로고, OG 이미지
+│  ├─ fonts/                  # 커스텀 폰트 (학교안심우주)
+│  └─ pages/
+│     ├─ reservation/
+│     │  ├─ book.html         # 예약/결제 페이지
+│     │  ├─ list.html         # 예약 현황 캘린더
+│     │  └─ check.html        # 예약 확인 페이지
+│     └─ admin/
+│        └─ admin-dashboard.html  # 관리자 대시보드
+│
+├─ docs/archive/              # 아카이브 문서
+├─ requirements.txt           # Python 의존성
+└─ README.md
 ```
 
 ## 빠른 시작
 
-### 1) 의존성 설치
+### 1) 가상환경 생성 및 의존성 설치
 
 ```bash
+python -m venv venv
+venv\Scripts\activate        # Windows
+# source venv/bin/activate   # Mac/Linux
 pip install -r requirements.txt
 ```
 
@@ -46,8 +90,6 @@ pip install -r requirements.txt
 - `GEMINI_API_KEY`
 
 ### 3) 서버 실행
-
-프로젝트 루트에서:
 
 ```bash
 cd backend
@@ -63,36 +105,44 @@ python server.py
 
 `backend/.env` 기준:
 
-- `GEMINI_API_KEY`: Gemini API 키 (필수)
-- `PORT`: 서버 포트
-- `CORS_ORIGINS`: 허용할 오리진 목록(콤마 구분)
-- `HOLIDAY_DATES`: 추가 공휴일(YYYY-MM-DD, 콤마 구분)
-- `BASE_WEEKDAY_RATE`, `BASE_WEEKEND_RATE`: 기본 숙박 요금
-- `BASE_GUESTS`, `MAX_GUESTS`: 기본/최대 인원
-- `ADULT_EXTRA_FEE`, `CHILD_EXTRA_FEE`, `INFANT_EXTRA_FEE`: 인원 추가 요금
-- `BBQ_FEE`: 바베큐 옵션 요금
-- `PAYMENT_CHECKOUT_URL`: 외부 결제 페이지 URL (없으면 주문 접수만 진행)
-- `PAYMENT_TERMS_VERSION`, `BOOKED_STATUSES`: 결제/캘린더 정책 설정
+| 변수 | 설명 | 기본값 |
+|------|------|--------|
+| `GEMINI_API_KEY` | Gemini API 키 **(필수)** | - |
+| `GEMINI_MODEL` | 사용할 Gemini 모델 | `gemini-2.5-flash-lite` |
+| `PORT` | 서버 포트 | `8001` |
+| `CORS_ORIGINS` | 허용할 오리진 목록 (쉼표 구분) | `http://localhost:8000` |
+| `BASE_WEEKDAY_RATE` | 평일 1박 요금 | `150000` |
+| `BASE_WEEKEND_RATE` | 주말 1박 요금 | `200000` |
+| `BASE_GUESTS` / `MAX_GUESTS` | 기본/최대 인원 | `2` / `6` |
+| `ADULT_EXTRA_FEE` | 추가 인원 요금 (1인/1박) | `20000` |
+| `BBQ_FEE` | BBQ 옵션 요금 | `20000` |
+| `TOSSPAYMENTS_WIDGET_CLIENT_KEY` | 토스 위젯 클라이언트 키 | - |
+| `TOSSPAYMENTS_SECRET_KEY` | 토스 시크릿 키 | - |
+| `ADMIN_DASHBOARD_TOKEN` | 관리자 대시보드 인증 토큰 | - |
 
 ## 주요 API
 
-- `GET /api/health`: 서버 헬스체크
-- `GET /api/calendar/config`: 달력 요금/공휴일 설정 조회
-- `GET /api/calendar/availability`: 예약 마감일 목록 조회
-- `POST /api/payment/quote`: 요금 견적
-- `POST /api/payment/prepare`: 주문 생성/결제 준비
-- `POST /api/reservation/check`: 이름+연락처로 예약 조회
-- `POST /api/chat`: 챗봇 스트리밍 응답
+| 메서드 | 경로 | 설명 |
+|--------|------|------|
+| `GET` | `/api/health` | 서버 헬스체크 |
+| `GET` | `/api/calendar/config` | 달력 요금/공휴일 설정 |
+| `GET` | `/api/calendar/availability` | 예약 마감일 목록 |
+| `POST` | `/api/payment/quote` | 요금 견적 |
+| `GET` | `/api/payment/config` | 토스 클라이언트 키 |
+| `POST` | `/api/payment/prepare` | 주문 생성/결제 준비 |
+| `GET` | `/reservation/success` | 토스 결제 성공 콜백 |
+| `GET` | `/reservation/fail` | 토스 결제 실패 콜백 |
+| `POST` | `/api/reservation/check` | 이름+연락처로 예약 조회 |
+| `GET` | `/api/admin/reservations` | 관리자 예약 목록 |
+| `POST` | `/api/admin/cancel-payment` | 관리자 결제 취소 |
+| `POST` | `/api/chat` | 챗봇 스트리밍 응답 |
 
 ## 데이터 저장
 
-로컬 SQLite 파일:
+로컬 SQLite 파일: `backend/guesthouse.db`
 
-- `backend/chatbot_logs.db`
-
-주요 테이블:
-
-- `chat_logs`
-- `payment_intents`
-- `payment_term_consents`
-
+| 테이블 | 용도 |
+|--------|------|
+| `chat_logs` | 챗봇 대화 기록 |
+| `payment_intents` | 예약/결제 정보 |
+| `payment_term_consents` | 약관 동의 기록 |

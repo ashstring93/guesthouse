@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 대시보드 - 물레방아하우스</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
+            background: #f5f6fa;
+            color: #1a1a2e;
+        }
+
+        .header {
+            background: #1a1a2e;
+            color: #fff;
+            padding: 20px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .header a {
+            color: #a0aec0;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 24px auto;
+            padding: 0 16px;
+        }
+
+        /* 인증 폼 */
+        .auth-box {
+            background: #fff;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            max-width: 400px;
+            margin: 80px auto;
+            text-align: center;
+        }
+
+        .auth-box h2 {
+            margin-bottom: 16px;
+            font-size: 18px;
+        }
+
+        .auth-box input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 15px;
+            margin-bottom: 12px;
+        }
+
+        .auth-box button {
+            width: 100%;
+            padding: 12px;
+            background: #3182f6;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .auth-box button:hover {
+            background: #1b6cf2;
+        }
+
+        .auth-error {
+            color: #dc2626;
+            font-size: 13px;
+            margin-top: 8px;
+        }
+
+        /* 통계 카드 */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 1px 6px rgba(0, 0, 0, 0.04);
+        }
+
+        .stat-card .label {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .stat-card .value {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        /* 테이블 */
+        .table-wrap {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 1px 6px rgba(0, 0, 0, 0.04);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        th {
+            background: #f8fafc;
+            padding: 12px 14px;
+            text-align: left;
+            font-weight: 600;
+            color: #475569;
+            border-bottom: 2px solid #e2e8f0;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 12px 14px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+
+        tr:hover {
+            background: #f8fafc;
+        }
+
+        /* 상태 뱃지 */
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge.paid {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .badge.pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge.cancelled {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge.mock_paid {
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+
+        /* 환불 정보 */
+        .refund-info {
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .refund-full {
+            color: #059669;
+            font-weight: 600;
+        }
+
+        .refund-half {
+            color: #d97706;
+            font-weight: 600;
+        }
+
+        .refund-none {
+            color: #dc2626;
+            font-weight: 600;
+        }
+
+        /* 취소 버튼 */
+        .btn-cancel {
+            padding: 6px 14px;
+            background: #ef4444;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-cancel:hover {
+            background: #dc2626;
+        }
+
+        .btn-cancel:disabled {
+            background: #d1d5db;
+            cursor: not-allowed;
+        }
+
+        /* 모달 */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background: #fff;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 420px;
+            width: 90%;
+        }
+
+        .modal h3 {
+            margin-bottom: 12px;
+            font-size: 18px;
+        }
+
+        .modal p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+
+        .modal .amount-highlight {
+            font-size: 20px;
+            font-weight: 700;
+            color: #ef4444;
+            margin: 12px 0;
+        }
+
+        .modal textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 13px;
+            resize: vertical;
+            min-height: 60px;
+            margin-bottom: 12px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .modal-actions button {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-confirm-cancel {
+            background: #ef4444;
+            color: #fff;
+        }
+
+        .btn-close-modal {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>🏠 물레방아하우스 관리자</h1>
+        <a href="/">← 홈으로</a>
+    </div>
+
+    <!-- 인증 -->
+    <div id="auth-section" class="auth-box">
+        <h2>🔐 관리자 인증</h2>
+        <input type="password" id="token-input" placeholder="관리자 토큰 입력" autofocus>
+        <button onclick="authenticate()">로그인</button>
+        <p id="auth-error" class="auth-error" hidden></p>
+    </div>
+
+    <!-- 대시보드 (인증 후 표시) -->
+    <div id="dashboard-section" class="container" hidden>
+        <div class="stats" id="stats-area"></div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>주문번호</th>
+                        <th>예약자</th>
+                        <th>연락처</th>
+                        <th>체크인</th>
+                        <th>숙박</th>
+                        <th>인원</th>
+                        <th>결제금액</th>
+                        <th>상태</th>
+                        <th>환불 정보</th>
+                        <th>관리</th>
+                    </tr>
+                </thead>
+                <tbody id="reservation-body">
+                    <tr>
+                        <td colspan="10" class="loading">로딩 중...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 취소 확인 모달 -->
+    <div id="cancel-modal" class="modal-overlay">
+        <div class="modal">
+            <h3>⚠️ 결제 취소 확인</h3>
+            <p id="cancel-modal-info"></p>
+            <div id="cancel-modal-amount" class="amount-highlight"></div>
+            <textarea id="cancel-reason" placeholder="취소 사유 (선택)">고객 요청에 의한 취소</textarea>
+            <div class="modal-actions">
+                <button class="btn-close-modal" onclick="closeModal()">닫기</button>
+                <button class="btn-confirm-cancel" id="btn-confirm" onclick="confirmCancel()">취소 진행</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let adminToken = '';
+        let currentOrderId = '';
+
+        // API 기본 URL (개발 환경에서는 포트가 다를 수 있음)
+        const baseUrl = window.location.origin;
+
+        // 인증
+        document.getElementById('token-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') authenticate();
+        });
+
+        async function authenticate() {
+            const token = document.getElementById('token-input').value.trim();
+            if (!token) return;
+
+            try {
+                const res = await fetch(`${baseUrl}/api/admin/reservations?token=${encodeURIComponent(token)}`);
+                if (res.status === 403) {
+                    document.getElementById('auth-error').textContent = '토큰이 올바르지 않습니다.';
+                    document.getElementById('auth-error').hidden = false;
+                    return;
+                }
+                if (!res.ok) throw new Error('서버 오류');
+
+                adminToken = token;
+                document.getElementById('auth-section').hidden = true;
+                document.getElementById('dashboard-section').hidden = false;
+                const data = await res.json();
+                renderDashboard(data.reservations);
+            } catch (e) {
+                document.getElementById('auth-error').textContent = '인증 실패: ' + e.message;
+                document.getElementById('auth-error').hidden = false;
+            }
+        }
+
+        // 대시보드 렌더링
+        function renderDashboard(reservations) {
+            // 통계
+            const total = reservations.length;
+            const paid = reservations.filter(r => r.status === 'paid').length;
+            const cancelled = reservations.filter(r => r.status === 'cancelled').length;
+            const totalRevenue = reservations
+                .filter(r => r.status === 'paid')
+                .reduce((sum, r) => sum + (r.total_amount || 0), 0);
+
+            document.getElementById('stats-area').innerHTML = `
+            <div class="stat-card"><div class="label">전체 예약</div><div class="value">${total}건</div></div>
+            <div class="stat-card"><div class="label">결제 완료</div><div class="value" style="color:#059669">${paid}건</div></div>
+            <div class="stat-card"><div class="label">취소</div><div class="value" style="color:#dc2626">${cancelled}건</div></div>
+            <div class="stat-card"><div class="label">결제 총액</div><div class="value">${totalRevenue.toLocaleString()}원</div></div>
+        `;
+
+            // 테이블
+            const tbody = document.getElementById('reservation-body');
+            if (reservations.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" class="loading">예약 내역이 없습니다.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = reservations.map(r => {
+                const refund = r.refund_info || {};
+                const statusBadge = getStatusBadge(r.status);
+                const refundHtml = getRefundHtml(r.status, refund);
+                const canCancel = r.status === 'paid' && refund.refund_rate > 0;
+
+                return `<tr>
+                <td style="font-family:monospace;font-size:11px">${shortOrderId(r.order_id)}</td>
+                <td>${r.customer_name || '-'}</td>
+                <td>${r.customer_phone || '-'}</td>
+                <td>${r.checkin_date || '-'}</td>
+                <td>${r.nights || 1}박</td>
+                <td>${r.adults || '-'}명</td>
+                <td style="font-weight:600">${(r.total_amount || 0).toLocaleString()}원</td>
+                <td>${statusBadge}</td>
+                <td>${refundHtml}</td>
+                <td>${canCancel
+                        ? `<button class="btn-cancel" onclick="openCancelModal('${r.order_id}', '${r.customer_name}', ${r.total_amount}, ${refund.refund_amount}, '${refund.message}')">취소</button>`
+                        : (r.status === 'paid' && refund.refund_rate === 0 ? '<span style="color:#999;font-size:12px">환불불가</span>' : '-')
+                    }</td>
+            </tr>`;
+            }).join('');
+        }
+
+        function shortOrderId(id) {
+            if (!id) return '-';
+            return id.length > 16 ? id.slice(0, 8) + '…' + id.slice(-4) : id;
+        }
+
+        function getStatusBadge(status) {
+            const map = {
+                paid: '<span class="badge paid">결제완료</span>',
+                pending: '<span class="badge pending">대기</span>',
+                cancelled: '<span class="badge cancelled">취소</span>',
+                mock_paid: '<span class="badge mock_paid">테스트결제</span>',
+            };
+            return map[status] || `<span class="badge">${status || '알수없음'}</span>`;
+        }
+
+        function getRefundHtml(status, refund) {
+            if (status !== 'paid') return '<span style="color:#999;font-size:12px">-</span>';
+            const cls = refund.refund_rate === 100 ? 'refund-full' : refund.refund_rate === 50 ? 'refund-half' : 'refund-none';
+            return `<div class="refund-info">
+            <span class="${cls}">${refund.refund_rate}% (${(refund.refund_amount || 0).toLocaleString()}원)</span><br>
+            <span style="color:#888">${refund.message || ''}</span>
+        </div>`;
+        }
+
+        // 취소 모달
+        function openCancelModal(orderId, name, total, refundAmount, message) {
+            currentOrderId = orderId;
+            document.getElementById('cancel-modal-info').innerHTML =
+                `<strong>${name}</strong> 님의 예약을 취소합니다.<br>결제 금액: ${total.toLocaleString()}원<br>${message}`;
+            document.getElementById('cancel-modal-amount').textContent = `환불 금액: ${refundAmount.toLocaleString()}원`;
+            document.getElementById('cancel-modal').classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('cancel-modal').classList.remove('show');
+            currentOrderId = '';
+        }
+
+        async function confirmCancel() {
+            if (!currentOrderId) return;
+            const reason = document.getElementById('cancel-reason').value.trim() || '고객 요청에 의한 취소';
+            const btn = document.getElementById('btn-confirm');
+            btn.disabled = true;
+            btn.textContent = '처리 중...';
+
+            try {
+                const res = await fetch(`${baseUrl}/api/admin/cancel-payment?token=${encodeURIComponent(adminToken)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ order_id: currentOrderId, cancel_reason: reason }),
+                });
+                const data = await res.json();
+
+                if (res.ok && data.success) {
+                    alert(`✅ ${data.message}`);
+                    closeModal();
+                    // 새로고침
+                    const listRes = await fetch(`${baseUrl}/api/admin/reservations?token=${encodeURIComponent(adminToken)}`);
+                    const listData = await listRes.json();
+                    renderDashboard(listData.reservations);
+                } else {
+                    alert(`❌ 취소 실패: ${data.detail || data.message || '알 수 없는 오류'}`);
+                }
+            } catch (e) {
+                alert(`❌ 네트워크 오류: ${e.message}`);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '취소 진행';
+            }
+        }
+    </script>
+</body>
+
+</html>

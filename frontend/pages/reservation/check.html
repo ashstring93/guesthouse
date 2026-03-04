@@ -1,5 +1,6 @@
 ﻿<!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +10,7 @@
     <link rel="stylesheet" href="../../css/reservation-hub.css">
     <link rel="stylesheet" href="../../css/chatbot.css">
 </head>
+
 <body class="reservation-hub-page">
     <main class="reservation-hub-main">
         <div class="reservation-hub-shell">
@@ -32,11 +34,13 @@
                     <div class="reservation-check-grid">
                         <label class="field" for="check-customer-name">
                             <span>예약자 이름 <em>*</em></span>
-                            <input type="text" id="check-customer-name" name="customer_name" placeholder="예: 홍길동" required>
+                            <input type="text" id="check-customer-name" name="customer_name" placeholder="예: 홍길동"
+                                required>
                         </label>
                         <label class="field" for="check-customer-phone">
                             <span>예약자 연락처 <em>*</em></span>
-                            <input type="tel" id="check-customer-phone" name="customer_phone" placeholder="010-0000-0000" required>
+                            <input type="tel" id="check-customer-phone" name="customer_phone"
+                                placeholder="010-0000-0000" required>
                         </label>
                     </div>
                     <div class="reservation-check-actions">
@@ -71,10 +75,7 @@
                         <span class="label">반려동물 동반</span>
                         <span id="check-pet" class="value">-</span>
                     </div>
-                    <div class="reservation-check-row">
-                        <span class="label">결제 수단</span>
-                        <span id="check-method" class="value">-</span>
-                    </div>
+
                     <div class="reservation-check-row">
                         <span class="label">접수 시각</span>
                         <span id="check-created-at" class="value">-</span>
@@ -88,4 +89,5 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="../../js/chatbot.js"></script>
 </body>
+
 </html>

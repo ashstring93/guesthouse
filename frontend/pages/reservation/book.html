@@ -1,5 +1,6 @@
 ﻿<!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,7 +10,9 @@
     <link rel="stylesheet" href="../../css/reservation-hub.css">
     <link rel="stylesheet" href="../../css/payment.css">
     <link rel="stylesheet" href="../../css/chatbot.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 </head>
+
 <body class="payment-page reservation-hub-page">
     <main class="reservation-hub-main">
         <div class="reservation-hub-shell">
@@ -32,13 +35,10 @@
                         <input type="hidden" id="booking-checkin-date" name="checkin_date" value="">
                         <input type="hidden" id="booking-nights" name="nights" value="1">
                         <input type="hidden" id="booking-adults" name="adults" value="2">
-                        <input type="hidden" id="booking-children" name="children" value="0">
-                        <input type="hidden" id="booking-infants" name="infants" value="0">
-
                         <div class="form-grid">
                             <label class="field">
                                 <span>체크인 날짜 <em>*</em></span>
-                                <input type="date" id="booking-checkin" name="checkin_date_visible" required>
+                                <input type="text" id="booking-checkin" name="checkin_date_visible" required>
                             </label>
                             <label class="field">
                                 <span>숙박일수</span>
@@ -56,7 +56,8 @@
                             </label>
                             <label class="field">
                                 <span>연락처 <em>*</em></span>
-                                <input type="tel" id="customer-phone" name="customer_phone" placeholder="010-0000-0000" required>
+                                <input type="tel" id="customer-phone" name="customer_phone" placeholder="010-0000-0000"
+                                    required>
                             </label>
                             <div class="field field-guest">
                                 <span>인원 선택 <em>*</em></span>
@@ -67,46 +68,28 @@
                                     </div>
                                     <div class="guest-check-row">
                                         <div class="guest-check-label">
-                                            <strong>성인</strong>
+                                            <strong>숙박 인원</strong>
                                             <small>추가금 20,000원 / 1인 · 1박</small>
                                         </div>
                                         <div class="guest-check-options">
-                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="adults" value="1"><span>1</span></label>
-                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="adults" value="2" checked><span>2</span></label>
-                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="adults" value="3"><span>3</span></label>
-                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="adults" value="4"><span>4</span></label>
-                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="adults" value="5"><span>5</span></label>
-                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="adults" value="6"><span>6</span></label>
-                                        </div>
-                                    </div>
-                                    <div class="guest-check-row">
-                                        <div class="guest-check-label">
-                                            <strong>아동</strong>
-                                            <small>추가금 10,000원 / 1인 · 1박</small>
-                                        </div>
-                                        <div class="guest-check-options">
-                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="children" value="0" checked><span>0</span></label>
-                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="children" value="1"><span>1</span></label>
-                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="children" value="2"><span>2</span></label>
-                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="children" value="3"><span>3</span></label>
-                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="children" value="4"><span>4</span></label>
-                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="children" value="5"><span>5</span></label>
-                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="children" value="6"><span>6</span></label>
-                                        </div>
-                                    </div>
-                                    <div class="guest-check-row">
-                                        <div class="guest-check-label">
-                                            <strong>유아</strong>
-                                            <small>추가금 5,000원 / 1인 · 1박</small>
-                                        </div>
-                                        <div class="guest-check-options">
-                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="infants" value="0" checked><span>0</span></label>
-                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="infants" value="1"><span>1</span></label>
-                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="infants" value="2"><span>2</span></label>
-                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="infants" value="3"><span>3</span></label>
-                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="infants" value="4"><span>4</span></label>
-                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="infants" value="5"><span>5</span></label>
-                                            <label class="guest-check-item"><input type="checkbox" class="guest-count-checkbox" data-guest-group="infants" value="6"><span>6</span></label>
+                                            <label class="guest-check-item"><input type="checkbox"
+                                                    class="guest-count-checkbox" data-guest-group="adults"
+                                                    value="1"><span>1</span></label>
+                                            <label class="guest-check-item"><input type="checkbox"
+                                                    class="guest-count-checkbox" data-guest-group="adults" value="2"
+                                                    checked><span>2</span></label>
+                                            <label class="guest-check-item"><input type="checkbox"
+                                                    class="guest-count-checkbox" data-guest-group="adults"
+                                                    value="3"><span>3</span></label>
+                                            <label class="guest-check-item"><input type="checkbox"
+                                                    class="guest-count-checkbox" data-guest-group="adults"
+                                                    value="4"><span>4</span></label>
+                                            <label class="guest-check-item"><input type="checkbox"
+                                                    class="guest-count-checkbox" data-guest-group="adults"
+                                                    value="5"><span>5</span></label>
+                                            <label class="guest-check-item"><input type="checkbox"
+                                                    class="guest-count-checkbox" data-guest-group="adults"
+                                                    value="6"><span>6</span></label>
                                         </div>
                                     </div>
                                 </div>
@@ -137,7 +120,8 @@
                         </div>
                         <label class="field">
                             <span>요청사항</span>
-                            <textarea id="request-note" name="request_note" rows="4" placeholder="요청사항을 입력해 주세요."></textarea>
+                            <textarea id="request-note" name="request_note" rows="4"
+                                placeholder="요청사항을 입력해 주세요."></textarea>
                         </label>
                     </form>
                 </section>
@@ -156,53 +140,41 @@
                                 <input type="checkbox" id="agree-policy" class="agree-required" data-term-key="policy">
                                 <span>유의사항/환불규정 동의 (필수)</span>
                             </label>
-                            <button type="button" class="term-view-btn" data-term-key="policy" aria-haspopup="dialog">내용보기</button>
+                            <button type="button" class="term-view-btn" data-term-key="policy"
+                                aria-haspopup="dialog">내용보기</button>
                         </div>
                         <div class="term-row">
                             <label class="checkbox-wrap">
-                                <input type="checkbox" id="agree-privacy" class="agree-required" data-term-key="privacy">
+                                <input type="checkbox" id="agree-privacy" class="agree-required"
+                                    data-term-key="privacy">
                                 <span>개인정보 수집 및 이용동의 (필수)</span>
                             </label>
-                            <button type="button" class="term-view-btn" data-term-key="privacy" aria-haspopup="dialog">내용보기</button>
+                            <button type="button" class="term-view-btn" data-term-key="privacy"
+                                aria-haspopup="dialog">내용보기</button>
                         </div>
                         <div class="term-row">
                             <label class="checkbox-wrap">
-                                <input type="checkbox" id="agree-thirdparty" class="agree-required" data-term-key="thirdparty">
+                                <input type="checkbox" id="agree-thirdparty" class="agree-required"
+                                    data-term-key="thirdparty">
                                 <span>개인정보 제3자 제공동의 (필수)</span>
                             </label>
-                            <button type="button" class="term-view-btn" data-term-key="thirdparty" aria-haspopup="dialog">내용보기</button>
+                            <button type="button" class="term-view-btn" data-term-key="thirdparty"
+                                aria-haspopup="dialog">내용보기</button>
                         </div>
                         <div class="term-row">
                             <label class="checkbox-wrap">
                                 <input type="checkbox" id="agree-adult" class="agree-required" data-term-key="adult">
                                 <span>미성년자 아님 동의 (필수)</span>
                             </label>
-                            <button type="button" class="term-view-btn" data-term-key="adult" aria-haspopup="dialog">내용보기</button>
+                            <button type="button" class="term-view-btn" data-term-key="adult"
+                                aria-haspopup="dialog">내용보기</button>
                         </div>
                     </div>
-                    <p class="terms-version">약관 버전: 2026-02-24-v1</p>
+
                 </section>
 
                 <section class="pay-section">
-                    <h2>결제 방법</h2>
-                    <div class="payment-methods">
-                        <label class="method-item">
-                            <input type="radio" name="payment_method" value="card" checked>
-                            <span>신용/체크카드</span>
-                        </label>
-                        <label class="method-item">
-                            <input type="radio" name="payment_method" value="naverpay">
-                            <span>Npay</span>
-                        </label>
-                        <label class="method-item">
-                            <input type="radio" name="payment_method" value="tosspay">
-                            <span>토스페이</span>
-                        </label>
-                        <label class="method-item">
-                            <input type="radio" name="payment_method" value="kakaopay">
-                            <span>카카오페이</span>
-                        </label>
-                    </div>
+
 
                     <div class="amount-panel">
                         <div class="amount-row">
@@ -231,6 +203,10 @@
                         </div>
                     </div>
 
+                    <!-- 토스페이먼츠 결제위젯 영역 -->
+                    <div id="payment-method" style="margin-top: 20px;"></div>
+                    <div id="agreement" style="margin-bottom: 20px;"></div>
+
                     <p id="payment-status-message" class="payment-status-message" aria-live="polite"></p>
                     <button type="button" id="pay-submit-btn" class="pay-submit-btn">결제하기</button>
                 </section>
@@ -240,13 +216,8 @@
 
     <div id="terms-modal" class="terms-modal" hidden>
         <div class="terms-modal-backdrop" data-close-terms-modal></div>
-        <div
-            class="terms-modal-dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="terms-modal-title"
-            aria-describedby="terms-modal-body"
-        >
+        <div class="terms-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="terms-modal-title"
+            aria-describedby="terms-modal-body">
             <div class="terms-modal-header">
                 <h3 id="terms-modal-title">약관 상세</h3>
                 <button type="button" class="terms-modal-close" data-close-terms-modal aria-label="약관 팝업 닫기">닫기</button>
@@ -256,8 +227,14 @@
         </div>
     </div>
 
-    <script src="../../js/payment.js?v=20260224-1"></script>
+    <!-- 토스페이먼츠 SDK (V2) -->
+    <script src="https://js.tosspayments.com/v2/standard"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/ko.js"></script>
+    <script src="../../js/payment.js?v=20260224-2"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="../../js/chatbot.js"></script>
 </body>
+
 </html>

@@ -13,20 +13,12 @@
     const amountText = document.getElementById('check-amount');
     const bbqText = document.getElementById('check-bbq');
     const petText = document.getElementById('check-pet');
-    const methodText = document.getElementById('check-method');
     const createdText = document.getElementById('check-created-at');
 
     const STATUS_LABELS = {
         pending: '결제 대기',
         confirmed: '예약 확정',
         paid: '결제 완료',
-    };
-
-    const PAYMENT_METHOD_LABELS = {
-        card: '신용/체크카드',
-        naverpay: '네이버페이',
-        tosspay: '토스페이',
-        kakaopay: '카카오페이',
     };
 
     const normalizePhone = (value) => String(value || '').replace(/[^0-9]/g, '');
@@ -102,11 +94,8 @@
     };
 
     const formatGuests = (payload) => {
-        const adults = Number(payload.adults || 0);
-        const children = Number(payload.children || 0);
-        const infants = Number(payload.infants || 0);
-        const total = Number(payload.total_guests || adults + children + infants);
-        return `총 ${total}명 (성인 ${adults} / 아동 ${children} / 유아 ${infants})`;
+        const adults = Number(payload.adults || payload.total_guests || 0);
+        return `총 ${adults}명`;
     };
 
     const renderResult = (payload) => {
@@ -116,9 +105,7 @@
         if (amountText) amountText.textContent = formatKrw(payload.total_amount);
         if (bbqText) bbqText.textContent = payload.bbq ? '이용함' : '이용 안 함';
         if (petText) petText.textContent = payload.pet_with ? '동반' : '미동반';
-        if (methodText) {
-            methodText.textContent = PAYMENT_METHOD_LABELS[payload.payment_method] || payload.payment_method || '-';
-        }
+
         if (createdText) createdText.textContent = formatCreatedAt(payload.created_at);
     };
 
@@ -160,8 +147,19 @@
                 }),
             });
 
-            const data = await response.json();
+            // 서버 에러(500 등)에서 HTML 반환 시 JSON 파싱 실패 방지
+            let data;
+            try {
+                data = await response.json();
+            } catch {
+                throw new Error('서버에서 응답을 처리할 수 없습니다. 잠시 후 다시 시도해 주세요.');
+            }
+
             if (!response.ok) {
+                // 404 = 예약 없음 → 친화적 메시지
+                if (response.status === 404) {
+                    throw new Error('입력하신 정보와 일치하는 예약을 찾을 수 없습니다.\n이름과 연락처를 다시 확인해 주세요.');
+                }
                 throw new Error(data.detail || '예약 조회에 실패했습니다.');
             }
 

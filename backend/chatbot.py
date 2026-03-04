@@ -4,7 +4,9 @@ from google import genai
 from google.genai import types
 
 BACKEND_DIR = Path(__file__).resolve().parent
-KNOWLEDGE_BASE_FILE = BACKEND_DIR / "knowledge_base" / "integrated_accommodation_guide.md"
+KNOWLEDGE_BASE_FILE = (
+    BACKEND_DIR / "knowledge_base" / "integrated_accommodation_guide.md"
+)
 DEFAULT_MODEL = "gemini-2.5-flash-lite"
 
 
@@ -73,12 +75,3 @@ class GuestHouseChatbot:
                     yield text
 
         return stream_text(), [KNOWLEDGE_BASE_FILE.name]
-
-    def ask(self, question: str, session_id: str = "default_session") -> dict:
-        session = self._get_or_create_session(session_id)
-        response = session.send_message(question)
-        return {
-            "question": question,
-            "answer": getattr(response, "text", "") or "",
-            "sources": [KNOWLEDGE_BASE_FILE.name],
-        }

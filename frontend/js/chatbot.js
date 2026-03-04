@@ -252,17 +252,9 @@ class WatermillChatbot {
             );
             console.error('Chatbot API Error:', error);
         } finally {
-            // 踰꾪듉 ?ㅼ떆 ?쒖꽦??
             this.sendButton.disabled = false;
             this.input.focus();
         }
-    }
-
-    // callAPI 硫붿꽌?쒕뒗 ?댁젣 sendMessage ?대????듯빀?섏뿀?쇰?濡??쒓굅?섍굅??洹몃?濡??щ룄 臾대갑?섏?留?
-    // sendMessage媛 吏곸젒 fetch瑜??섑뻾?섎?濡??ъ슜?섏? ?딆쓬.
-    async callAPI(question) {
-        // ... (Legacy code, kept for reference if needed, or remove)
-        return null;
     }
 
     addMessage(text, type) {
@@ -270,7 +262,6 @@ class WatermillChatbot {
         messageDiv.className = `message ${type}`;
         messageDiv.textContent = text;
 
-        // 留덊겕?ㅼ슫 異붽? (遊?硫붿떆吏??寃쎌슦)
         if (type === 'bot') {
             if (typeof marked !== 'undefined') {
                 messageDiv.innerHTML = marked.parse(text);

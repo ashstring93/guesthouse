@@ -10,8 +10,6 @@
     const hiddenCheckinInput = document.getElementById("booking-checkin-date");
     const hiddenNightsInput = document.getElementById("booking-nights");
     const hiddenAdultsInput = document.getElementById("booking-adults");
-    const hiddenChildrenInput = document.getElementById("booking-children");
-    const hiddenInfantsInput = document.getElementById("booking-infants");
 
     const checkinInput = document.getElementById("booking-checkin");
     const nightsSelect = document.getElementById("booking-nights-visible");
@@ -44,20 +42,15 @@
     const termsModalCloseTargets = Array.from(document.querySelectorAll("[data-close-terms-modal]"));
     const termsVersionLabel = document.querySelector(".terms-version");
 
-    const methodInputs = Array.from(document.querySelectorAll('input[name="payment_method"]'));
 
     const MAX_GUESTS = 6;
     const TERMS_VERSION = "2026-02-24-v1";
-    const GUEST_GROUPS = ["adults", "children", "infants"];
+    const GUEST_GROUPS = ["adults"];
     const BASE_GUESTS = 2;
     const ADULT_EXTRA_FEE = 20000;
-    const CHILD_EXTRA_FEE = 10000;
-    const INFANT_EXTRA_FEE = 5000;
     const BBQ_FEE = 20000;
     const GUEST_MINIMUM = {
         adults: 1,
-        children: 0,
-        infants: 0,
     };
 
     const qs = new URLSearchParams(window.location.search);
@@ -75,11 +68,81 @@
 
     const guestState = {
         adults: 2,
-        children: 0,
-        infants: 0,
     };
 
     let lastQuote = null;
+
+    // ── 토스페이먼츠 V2 결제위젯 상태 ──
+    let tossWidgets = null;
+    let isTossInitializing = false;
+
+    /**
+     * 토스 결제위젯 초기화 및 금액 업데이트.
+     * 최초 호출 시 SDK 초기화 + 위젯 렌더링, 이후 호출 시 금액만 업데이트.
+     * @param {number} totalAmount - 결제 총액 (KRW)
+     */
+    const initOrUpdateTossWidgets = async (totalAmount) => {
+        // SDK가 로드되지 않은 경우 무시
+        if (typeof TossPayments === 'undefined') {
+            console.warn('TossPayments SDK가 로드되지 않았습니다.');
+            return;
+        }
+
+        // 이미 초기화된 경우 금액만 업데이트
+        if (tossWidgets) {
+            try {
+                await tossWidgets.setAmount({ currency: 'KRW', value: totalAmount });
+            } catch (e) {
+                console.error('위젯 금액 업데이트 실패:', e);
+            }
+            return;
+        }
+
+        // 중복 초기화 방지
+        if (isTossInitializing) return;
+        isTossInitializing = true;
+
+        try {
+            // 1. 백엔드에서 결제위젯 연동 클라이언트 키 조회
+            const configRes = await fetch(apiUrl('/api/payment/config'));
+            const configData = await configRes.json();
+            const clientKey = configData.client_key;
+
+            if (!clientKey) {
+                console.warn('결제위젯 연동 키가 설정되지 않았습니다.');
+                return;
+            }
+
+            // 2. SDK 초기화 (결제위젯 연동 키 사용)
+            const tossPayments = TossPayments(clientKey);
+
+            // 3. 위젯 인스턴스 생성 (비회원 결제 = ANONYMOUS)
+            const widgets = tossPayments.widgets({
+                customerKey: TossPayments.ANONYMOUS,
+            });
+
+            // 4. 결제 금액 설정 (renderPaymentMethods 전에 반드시 호출)
+            await widgets.setAmount({ currency: 'KRW', value: totalAmount });
+
+            // 5. 결제 UI 렌더링
+            await widgets.renderPaymentMethods({
+                selector: '#payment-method',
+                variantKey: 'DEFAULT',
+            });
+
+            // 6. 약관 UI 렌더링
+            await widgets.renderAgreement({
+                selector: '#agreement',
+                variantKey: 'AGREEMENT',
+            });
+
+            tossWidgets = widgets;
+        } catch (error) {
+            console.error('토스 결제위젯 초기화 실패:', error);
+        } finally {
+            isTossInitializing = false;
+        }
+    };
 
     const TERM_DETAILS = {
         policy: {
@@ -160,9 +223,8 @@
 
     const normalizePhone = (value) => String(value || "").replace(/[^0-9]/g, "");
 
-    const parseBoolean = (value) => ["1", "true", "yes", "on"].includes(String(value || "").toLowerCase());
 
-    const getGuestTotal = () => guestState.adults + guestState.children + guestState.infants;
+    const getGuestTotal = () => guestState.adults;
 
     const getGroupInputs = (group) =>
         guestCountInputs
@@ -199,13 +261,6 @@
         });
     };
 
-    const syncMethodCards = () => {
-        methodInputs.forEach((input) => {
-            const card = input.closest(".method-item");
-            if (!card) return;
-            card.classList.toggle("active", input.checked);
-        });
-    };
 
     const escapeHtml = (value) =>
         String(value || "")
@@ -227,7 +282,7 @@
         if (!detail) return;
 
         termsModalTitle.textContent = detail.title;
-        termsModalMeta.textContent = `약관 버전 ${detail.version} | 시행일 ${detail.effectiveDate}`;
+        termsModalMeta.textContent = `시행일 ${detail.effectiveDate}`;
         termsModalBody.innerHTML = detail.lines
             .map((line, index) => `<p>${index + 1}. ${escapeHtml(line)}</p>`)
             .join("");
@@ -243,8 +298,6 @@
 
     const syncGuestUi = () => {
         if (hiddenAdultsInput) hiddenAdultsInput.value = String(guestState.adults);
-        if (hiddenChildrenInput) hiddenChildrenInput.value = String(guestState.children);
-        if (hiddenInfantsInput) hiddenInfantsInput.value = String(guestState.infants);
 
         GUEST_GROUPS.forEach((group) => {
             setGroupSelection(group, guestState[group]);
@@ -257,14 +310,6 @@
 
     const adjustGuestWithinLimit = () => {
         while (getGuestTotal() > MAX_GUESTS) {
-            if (guestState.infants > GUEST_MINIMUM.infants) {
-                guestState.infants -= 1;
-                continue;
-            }
-            if (guestState.children > GUEST_MINIMUM.children) {
-                guestState.children -= 1;
-                continue;
-            }
             if (guestState.adults > GUEST_MINIMUM.adults) {
                 guestState.adults -= 1;
                 continue;
@@ -273,43 +318,23 @@
         }
     };
 
-    const calculateExtraByGroup = (nights, adults, children, infants, feeMeta = {}) => {
+    const calculateExtraByGroup = (nights, adults, feeMeta = {}) => {
         const safeNights = Math.max(1, Number(nights || 1));
-        let remainingFree = BASE_GUESTS;
 
-        const freeAdults = Math.min(adults, remainingFree);
-        remainingFree -= freeAdults;
-        const freeChildren = Math.min(children, remainingFree);
-        remainingFree -= freeChildren;
-        const freeInfants = Math.min(infants, remainingFree);
-        remainingFree -= freeInfants;
-
-        const chargedAdults = Math.max(0, adults - freeAdults);
-        const chargedChildren = Math.max(0, children - freeChildren);
-        const chargedInfants = Math.max(0, infants - freeInfants);
+        const extraGuests = Math.max(0, adults - BASE_GUESTS);
 
         const adultFee = Number.isFinite(Number(feeMeta.adult_extra_fee))
             ? Number(feeMeta.adult_extra_fee)
             : ADULT_EXTRA_FEE;
-        const childFee = Number.isFinite(Number(feeMeta.child_extra_fee))
-            ? Number(feeMeta.child_extra_fee)
-            : CHILD_EXTRA_FEE;
-        const infantFee = Number.isFinite(Number(feeMeta.infant_extra_fee))
-            ? Number(feeMeta.infant_extra_fee)
-            : INFANT_EXTRA_FEE;
         const bbqFee = Number.isFinite(Number(feeMeta.bbq_fee))
             ? Number(feeMeta.bbq_fee)
             : BBQ_FEE;
 
-        const extraAmount =
-            (chargedAdults * adultFee + chargedChildren * childFee + chargedInfants * infantFee) * safeNights;
+        const extraAmount = extraGuests * adultFee * safeNights;
         const bbqAmount = bbqCheckbox && bbqCheckbox.checked ? bbqFee : 0;
 
         return {
-            chargedAdults,
-            chargedChildren,
-            chargedInfants,
-            extraGuests: chargedAdults + chargedChildren + chargedInfants,
+            extraGuests,
             extraAmount,
             bbqAmount,
         };
@@ -322,8 +347,8 @@
         const extraInfo = calculateExtraByGroup(
             nights,
             guestState.adults,
-            guestState.children,
-            guestState.infants,
+            0,
+            0,
             safeQuote
         );
         const totalAmount = roomAmount + extraInfo.extraAmount + extraInfo.bbqAmount;
@@ -350,6 +375,24 @@
             const total = Number(safeQuote.total_guests || getGuestTotal());
             panelTotalGuestsEl.textContent = `${total}명`;
         }
+
+        // 토스 결제위젯 금액 동기화 (초기화 또는 업데이트)
+        initOrUpdateTossWidgets(totalAmount);
+    };
+
+    let holidayDates = new Set();
+    let bookedDates = new Set();
+
+    const hasBlockedNightInRange = (checkin, nights) => {
+        const cursor = new Date(checkin);
+        for (let i = 0; i < nights; i++) {
+            const ymd = toYmd(cursor);
+            if (bookedDates.has(ymd)) {
+                return true;
+            }
+            cursor.setDate(cursor.getDate() + 1);
+        }
+        return false;
     };
 
     const fetchQuote = async () => {
@@ -361,6 +404,14 @@
             return null;
         }
 
+        const parsedCheckin = parseYmd(checkinDate);
+        if (parsedCheckin && hasBlockedNightInRange(parsedCheckin, nights)) {
+            if (paySubmitBtn) paySubmitBtn.disabled = true;
+            return null;
+        } else {
+            if (paySubmitBtn) paySubmitBtn.disabled = false;
+        }
+
         try {
             const response = await fetch(apiUrl("/api/payment/quote"), {
                 method: "POST",
@@ -369,8 +420,6 @@
                     checkin_date: checkinDate,
                     nights,
                     adults: guestState.adults,
-                    children: guestState.children,
-                    infants: guestState.infants,
                     bbq: !!(bbqCheckbox && bbqCheckbox.checked),
                     pet_with: !!(petCheckbox && petCheckbox.checked),
                 }),
@@ -394,6 +443,13 @@
         if (!checkinInput || !checkinInput.value) {
             setStatus("체크인 날짜를 선택해 주세요.", "error");
             if (checkinInput) checkinInput.focus();
+            return false;
+        }
+
+        const nights = Number(nightsSelect ? nightsSelect.value : 1);
+        const parsedCheckin = parseYmd(checkinInput.value);
+        if (parsedCheckin && hasBlockedNightInRange(parsedCheckin, nights)) {
+            setStatus("선택한 숙박 기간에 이미 예약된 날짜가 포함되어 있습니다.", "error");
             return false;
         }
 
@@ -431,20 +487,14 @@
         const quote = lastQuote || (await fetchQuote());
         if (!quote) return;
 
-        const checkedMethod = document.querySelector('input[name="payment_method"]:checked');
-        const paymentMethod = checkedMethod ? checkedMethod.value : "card";
-
         const payload = {
             customer_name: customerNameInput ? customerNameInput.value.trim() : "",
             customer_phone: customerPhoneInput ? customerPhoneInput.value.trim() : "",
             checkin_date: hiddenCheckinInput ? hiddenCheckinInput.value : "",
             nights: Number(hiddenNightsInput ? hiddenNightsInput.value : 1),
             adults: guestState.adults,
-            children: guestState.children,
-            infants: guestState.infants,
             bbq: !!(bbqCheckbox && bbqCheckbox.checked),
             pet_with: !!(petCheckbox && petCheckbox.checked),
-            payment_method: paymentMethod,
             agreed_to_terms: true,
             terms_version: TERMS_VERSION,
             agree_policy: !!(agreePolicyInput && agreePolicyInput.checked),
@@ -455,10 +505,16 @@
             request_note: requestNoteInput ? requestNoteInput.value.trim() : "",
         };
 
+        if (!tossWidgets) {
+            setStatus("결제 위젯이 아직 준비되지 않았습니다. 잠시 후 다시 시도해 주세요.", "error");
+            return;
+        }
+
         if (paySubmitBtn) paySubmitBtn.disabled = true;
         setStatus("주문 정보를 생성하는 중입니다.");
 
         try {
+            // 1. 백엔드에 주문 생성 요청 → order_id, amount 반환
             const response = await fetch(apiUrl("/api/payment/prepare"), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -469,27 +525,31 @@
                 throw new Error(data.detail || "주문 생성에 실패했습니다.");
             }
 
-            if (data.checkout_url) {
-                setStatus("결제 페이지로 이동합니다.", "success");
-                window.location.href = data.checkout_url;
-                return;
-            }
+            setStatus("결제창을 여는 중입니다...", "success");
 
-            setStatus(`${data.message} 주문번호: ${data.order_id}`, "success");
+            // 2. 토스 결제위젯 결제 요청 (Redirect 방식)
+            await tossWidgets.requestPayment({
+                orderId: data.order_id,
+                orderName: `물레방아하우스 숙박 예약 (${payload.nights}박)`,
+                successUrl: window.location.origin + apiUrl("/reservation/success"),
+                failUrl: window.location.origin + apiUrl("/reservation/fail"),
+                customerName: payload.customer_name,
+                customerMobilePhone: normalizePhone(payload.customer_phone),
+            });
+
         } catch (error) {
+            // 사용자가 결제창을 닫은 경우 등
             setStatus(error.message || "결제 준비 중 오류가 발생했습니다.", "error");
-        } finally {
             if (paySubmitBtn) paySubmitBtn.disabled = false;
         }
     };
 
-    const initDefaultValues = () => {
+    const initDefaultValues = async () => {
         const today = new Date();
         const tomorrow = new Date(today);
         tomorrow.setDate(today.getDate() + 1);
 
         const minDate = toYmd(today);
-        if (checkinInput) checkinInput.min = minDate;
 
         const queryCheckin = qs.get("checkin");
         const queryNights = Number(qs.get("nights") || 1);
@@ -497,23 +557,83 @@
         const selectedDate =
             parsedQueryDate && queryCheckin >= minDate ? queryCheckin : toYmd(tomorrow);
 
-        if (checkinInput) checkinInput.value = selectedDate;
-
         const safeNights = Number.isFinite(queryNights) ? Math.min(5, Math.max(1, queryNights)) : 1;
         if (nightsSelect) nightsSelect.value = String(safeNights);
 
         const adultsFromQuery = Number(qs.get("adults") || guestState.adults);
-        const childrenFromQuery = Number(qs.get("children") || guestState.children);
-        const infantsFromQuery = Number(qs.get("infants") || guestState.infants);
 
         guestState.adults = Math.max(GUEST_MINIMUM.adults, Number.isFinite(adultsFromQuery) ? adultsFromQuery : 2);
-        guestState.children = Math.max(GUEST_MINIMUM.children, Number.isFinite(childrenFromQuery) ? childrenFromQuery : 0);
-        guestState.infants = Math.max(GUEST_MINIMUM.infants, Number.isFinite(infantsFromQuery) ? infantsFromQuery : 0);
 
         adjustGuestWithinLimit();
 
         if (bbqCheckbox) bbqCheckbox.checked = parseBoolean(qs.get("bbq"));
         if (petCheckbox) petCheckbox.checked = parseBoolean(qs.get("pet")) || parseBoolean(qs.get("pet_with"));
+
+        try {
+            const rangeEnd = new Date(today);
+            rangeEnd.setMonth(rangeEnd.getMonth() + 3);
+
+            const [availability, calendarConfig] = await Promise.all([
+                fetch(apiUrl(`/api/calendar/availability?start=${toYmd(today)}&end=${toYmd(rangeEnd)}`)).then(r => r.json()).catch(() => ({ booked_dates: [] })),
+                fetch(apiUrl(`/api/calendar/config`)).then(r => r.json()).catch(() => ({ holiday_dates: [] }))
+            ]);
+
+            if (Array.isArray(availability.booked_dates)) {
+                availability.booked_dates.forEach((value) => {
+                    if (typeof value === 'string' && value.trim()) bookedDates.add(value.trim());
+                });
+            }
+            if (Array.isArray(calendarConfig.holiday_dates)) {
+                calendarConfig.holiday_dates.forEach((value) => {
+                    if (typeof value === 'string' && value.trim()) holidayDates.add(value.trim());
+                });
+            }
+        } catch (error) {
+            console.error("Failed to load calendar data:", error);
+        }
+
+        if (checkinInput) {
+            flatpickr(checkinInput, {
+                locale: typeof flatpickr !== 'undefined' && flatpickr.l10ns && flatpickr.l10ns.ko ? flatpickr.l10ns.ko : undefined,
+                dateFormat: 'Y-m-d',
+                disableMobile: true,
+                minDate: 'today',
+                defaultDate: selectedDate,
+                disable: [
+                    (date) => {
+                        const dateStr = toYmd(date);
+                        return dateStr < minDate || bookedDates.has(dateStr);
+                    }
+                ],
+                onDayCreate: (_dObj, _dStr, _fp, dayElement) => {
+                    if (dayElement.classList.contains('prevMonthDay') || dayElement.classList.contains('nextMonthDay')) {
+                        return;
+                    }
+                    const day = dayElement.dateObj.getDay();
+                    if (day === 0) dayElement.classList.add('day-sunday');
+                    if (day === 6) dayElement.classList.add('day-saturday');
+
+                    const ymd = toYmd(dayElement.dateObj);
+                    if (holidayDates.has(ymd)) {
+                        dayElement.classList.add('day-holiday');
+                    }
+                },
+                onChange: (selectedDates, dateStr) => {
+                    let nights = Number(nightsSelect ? nightsSelect.value : 1);
+                    const parsedCheckin = parseYmd(dateStr);
+                    if (parsedCheckin && hasBlockedNightInRange(parsedCheckin, nights)) {
+                        alert(`선택하신 체크인 날짜부터 ${nights}박 기간 내에 이미 예약된 날짜가 포함되어 있습니다.\n숙박 일수를 1박으로 변경합니다.`);
+                        nights = 1;
+                        if (nightsSelect) nightsSelect.value = "1";
+                        if (hiddenNightsInput) hiddenNightsInput.value = "1";
+                    }
+                    if (hiddenCheckinInput) hiddenCheckinInput.value = dateStr;
+                    fetchQuote();
+                }
+            });
+        }
+
+        if (hiddenCheckinInput) hiddenCheckinInput.value = selectedDate;
 
         syncGuestUi();
         syncOptionChecks();
@@ -545,10 +665,6 @@
         await fetchQuote();
     };
 
-    if (termsVersionLabel) {
-        termsVersionLabel.textContent = `약관 버전: ${TERMS_VERSION}`;
-    }
-
     if (agreeAllInput) {
         agreeAllInput.addEventListener("change", () => {
             requiredAgreeInputs.forEach((input) => {
@@ -561,9 +677,6 @@
         input.addEventListener("change", syncAgreeAll);
     });
 
-    methodInputs.forEach((input) => {
-        input.addEventListener("change", syncMethodCards);
-    });
 
     guestCountInputs.forEach((input) => {
         input.addEventListener("change", onGuestCountChanged);
@@ -583,10 +696,20 @@
         });
     }
 
-    [checkinInput, nightsSelect].forEach((input) => {
-        if (!input) return;
-        input.addEventListener("change", fetchQuote);
-    });
+    if (nightsSelect) {
+        nightsSelect.addEventListener("change", (e) => {
+            const checkinDate = checkinInput ? checkinInput.value : "";
+            const nights = Number(e.target.value);
+            const parsedCheckin = parseYmd(checkinDate);
+            if (parsedCheckin && hasBlockedNightInRange(parsedCheckin, nights)) {
+                alert("선택하신 숙박 기간에 이미 예약된 날짜가 포함되어 있습니다.\n다른 숙박 일수를 선택해 주세요.");
+                e.target.value = hiddenNightsInput ? hiddenNightsInput.value : "1";
+                return;
+            }
+            if (hiddenNightsInput) hiddenNightsInput.value = String(nights);
+            fetchQuote();
+        });
+    }
 
     if (paySubmitBtn) {
         paySubmitBtn.addEventListener("click", submitPayment);
@@ -608,8 +731,8 @@
         }
     });
 
-    initDefaultValues();
-    syncAgreeAll();
-    syncMethodCards();
-    fetchQuote();
+    initDefaultValues().then(() => {
+        syncAgreeAll();
+        fetchQuote();
+    });
 });
