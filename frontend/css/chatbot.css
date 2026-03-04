@@ -215,11 +215,13 @@ body.reservation-hub-page .chatbot-button {
 
 /* 봇 메시지 내 이미지 (키워드 이미지 매핑) */
 .message.bot img {
-    max-width: 100%;
+    max-width: 240px;
+    height: auto;
     border-radius: 8px;
     margin-top: 8px;
     cursor: pointer;
     transition: transform 0.2s ease;
+    display: block;
 }
 
 .message.bot img:hover {
