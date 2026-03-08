@@ -101,6 +101,47 @@ class WatermillChatbot {
         this.typingIndicator = document.getElementById('typingIndicator');
     }
 
+    getAppBasePath() {
+        const path = window.location.pathname;
+        const reservationMarker = '/reservation/';
+        const markerIndex = path.indexOf(reservationMarker);
+
+        if (markerIndex >= 0) {
+            return path.slice(0, markerIndex);
+        }
+
+        if (path === '/' || path === '') {
+            return '';
+        }
+
+        return path.endsWith('/') ? path.slice(0, -1) : path;
+    }
+
+    resolveChatAssetPath(path) {
+        if (!path || !path.startsWith('/')) {
+            return path;
+        }
+
+        const basePath = this.getAppBasePath();
+        if (!basePath || path.startsWith(`${basePath}/`)) {
+            return path;
+        }
+
+        return `${basePath}${path}`;
+    }
+
+    hydrateMarkdown(container, markdownText) {
+        if (typeof marked === 'undefined') {
+            container.textContent = markdownText;
+            return;
+        }
+
+        container.innerHTML = marked.parse(markdownText);
+        container.querySelectorAll('img[src^="/"]').forEach((img) => {
+            img.src = this.resolveChatAssetPath(img.getAttribute('src'));
+        });
+    }
+
     attachEventListeners() {
         // 梨쀫큸 ?닿린/?リ린
         this.button.addEventListener('click', () => this.toggleChatbot());
@@ -176,17 +217,7 @@ class WatermillChatbot {
 
         try {
             // API ?몄텧 (?ㅽ듃由щ컢)
-            const getAppBasePath = () => {
-                const path = window.location.pathname;
-                const marker = '/reservation/';
-                const markerIndex = path.indexOf(marker);
-                if (markerIndex >= 0) {
-                    return path.slice(0, markerIndex);
-                }
-                if (path === '/') return '';
-                return path.endsWith('/') ? path.slice(0, -1) : path;
-            };
-            const defaultApiPath = `${getAppBasePath()}/api/chat`;
+            const defaultApiPath = `${this.getAppBasePath()}/api/chat`;
             const url = this.apiUrl
                 ? `${this.apiUrl}/api/chat`
                 : defaultApiPath;
@@ -230,11 +261,7 @@ class WatermillChatbot {
                 }
 
                 // 留덊겕?ㅼ슫 ?뚯떛???곸슜?섏뿬 HTML濡??뚮뜑留?
-                if (typeof marked !== 'undefined') {
-                    botMessageDiv.innerHTML = marked.parse(fullAnswer);
-                } else {
-                    botMessageDiv.textContent = fullAnswer;
-                }
+                this.hydrateMarkdown(botMessageDiv, fullAnswer);
                 this.scrollToBottom();
             }
 
@@ -263,9 +290,7 @@ class WatermillChatbot {
         messageDiv.textContent = text;
 
         if (type === 'bot') {
-            if (typeof marked !== 'undefined') {
-                messageDiv.innerHTML = marked.parse(text);
-            }
+            this.hydrateMarkdown(messageDiv, text);
         }
 
         this.messagesContainer.appendChild(messageDiv);
