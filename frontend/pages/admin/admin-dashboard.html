@@ -368,8 +368,24 @@
         let adminToken = '';
         let currentOrderId = '';
 
-        // API 기본 URL (개발 환경에서는 포트가 다를 수 있음)
-        const baseUrl = window.location.origin;
+        function getAppBasePath() {
+            const path = window.location.pathname;
+            const adminMarker = '/admin/dashboard';
+            const markerIndex = path.indexOf(adminMarker);
+
+            if (markerIndex >= 0) {
+                return path.slice(0, markerIndex);
+            }
+
+            if (path === '/' || path === '') {
+                return '';
+            }
+
+            return path.endsWith('/') ? path.slice(0, -1) : path;
+        }
+
+        // API 기본 URL (서브패스 배포 시 /guesthouse prefix 포함)
+        const baseUrl = `${window.location.origin}${getAppBasePath()}`;
 
         // 인증
         document.getElementById('token-input').addEventListener('keydown', (e) => {
