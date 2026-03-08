@@ -36,10 +36,55 @@
                         <input type="hidden" id="booking-nights" name="nights" value="1">
                         <input type="hidden" id="booking-adults" name="adults" value="2">
                         <div class="form-grid">
-                            <label class="field">
+                            <div class="field booking-date-field">
                                 <span>체크인 날짜 <em>*</em></span>
-                                <input type="text" id="booking-checkin" name="checkin_date_visible" required>
-                            </label>
+                                <input
+                                    type="text"
+                                    id="booking-checkin"
+                                    name="checkin_date_visible"
+                                    class="booking-date-trigger"
+                                    placeholder="달력에서 날짜를 선택해 주세요"
+                                    required
+                                    readonly
+                                    autocomplete="off"
+                                    aria-haspopup="dialog"
+                                    aria-expanded="false"
+                                    aria-controls="booking-calendar-dialog"
+                                >
+                                <div class="booking-calendar-backdrop" hidden></div>
+                                <div class="booking-calendar-popover" hidden>
+                                    <div
+                                        id="booking-calendar-dialog"
+                                        class="booking-calendar-dialog"
+                                        role="dialog"
+                                        aria-modal="true"
+                                        aria-labelledby="booking-calendar-title"
+                                    >
+                                        <div class="booking-calendar-header">
+                                            <div>
+                                                <strong id="booking-calendar-title">체크인 일정 선택</strong>
+                                                <p class="booking-calendar-meta">체크인과 체크아웃 날짜를 순서대로 선택해 주세요.</p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                class="booking-calendar-close"
+                                                aria-label="날짜 선택 팝업 닫기"
+                                            >닫기</button>
+                                        </div>
+                                        <div class="booking-calendar-body">
+                                            <div class="reservation-calendar-shell">
+                                                <div id="booking-calendar" class="reservation-calendar" aria-label="예약 가능일 달력"></div>
+                                            </div>
+                                            <div class="calendar-legend" aria-label="달력 범례">
+                                                <span class="legend-item"><span class="legend-dot available"></span>예약 가능</span>
+                                                <span class="legend-item"><span class="legend-dot booked"></span>예약 마감</span>
+                                            </div>
+                                            <p id="booking-calendar-selected-date" class="reservation-selected-date">선택 일정: 없음</p>
+                                            <p id="booking-calendar-status" class="reservation-status">체크인과 체크아웃을 선택하면 예약 가능 여부를 확인할 수 있습니다.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             <label class="field">
                                 <span>숙박일수</span>
                                 <select id="booking-nights-visible" name="nights_visible">
@@ -63,8 +108,8 @@
                                 <span>인원 선택 <em>*</em></span>
                                 <div class="guest-check-panel">
                                     <div class="guest-check-head">
-                                        <strong>최대 6인</strong>
-                                        <small id="guest-total-label">총 2인 / 최대 6인</small>
+                                        <strong>최대 8인</strong>
+                                        <small id="guest-total-label">총 2인 / 최대 8인</small>
                                     </div>
                                     <div class="guest-check-row">
                                         <div class="guest-check-label">
@@ -90,6 +135,12 @@
                                             <label class="guest-check-item"><input type="checkbox"
                                                     class="guest-count-checkbox" data-guest-group="adults"
                                                     value="6"><span>6</span></label>
+                                            <label class="guest-check-item"><input type="checkbox"
+                                                    class="guest-count-checkbox" data-guest-group="adults"
+                                                    value="7"><span>7</span></label>
+                                            <label class="guest-check-item"><input type="checkbox"
+                                                    class="guest-count-checkbox" data-guest-group="adults"
+                                                    value="8"><span>8</span></label>
                                         </div>
                                     </div>
                                 </div>
@@ -232,6 +283,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://npmcdn.com/flatpickr/dist/l10n/ko.js"></script>
+    <script src="../../js/reservation-calendar.js"></script>
     <script src="../../js/payment.js?v=20260224-2"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="../../js/chatbot.js"></script>

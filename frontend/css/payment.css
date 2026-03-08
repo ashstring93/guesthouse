@@ -142,6 +142,112 @@
     min-height: 110px;
 }
 
+.booking-date-field {
+    position: relative;
+    z-index: 2;
+}
+
+.booking-date-field.is-calendar-open {
+    z-index: 20;
+}
+
+.booking-date-trigger {
+    cursor: pointer;
+    caret-color: transparent;
+    padding-right: 42px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7.5L10 12.5L15 7.5' stroke='%23616b86' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px 16px;
+}
+
+.booking-date-trigger:hover {
+    border-color: rgba(47, 74, 58, 0.35);
+}
+
+.booking-date-trigger:focus {
+    outline: none;
+    border-color: rgba(47, 74, 58, 0.55);
+    box-shadow: 0 0 0 4px rgba(47, 74, 58, 0.1);
+}
+
+.booking-calendar-backdrop[hidden],
+.booking-calendar-popover[hidden] {
+    display: none !important;
+}
+
+.booking-calendar-backdrop {
+    display: none;
+}
+
+.booking-calendar-popover {
+    position: absolute;
+    top: calc(100% + 12px);
+    left: 0;
+    z-index: 40;
+    width: min(460px, calc(100vw - 40px));
+}
+
+.booking-calendar-dialog {
+    border: 1px solid rgba(31, 25, 20, 0.16);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 18px 40px rgba(10, 10, 10, 0.18);
+    overflow: hidden;
+}
+
+.booking-calendar-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 18px 0;
+}
+
+.booking-calendar-header strong {
+    display: block;
+    color: var(--text-color);
+    font-family: var(--font-heading);
+    font-size: 1.08rem;
+    line-height: 1.3;
+}
+
+.booking-calendar-close {
+    border: 1px solid rgba(31, 25, 20, 0.18);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--text-light);
+    font: inherit;
+    font-size: 0.84rem;
+    padding: 7px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.booking-calendar-close:hover {
+    border-color: rgba(47, 74, 58, 0.45);
+    color: var(--text-color);
+}
+
+.booking-calendar-body {
+    padding: 14px 18px 18px;
+}
+
+.booking-calendar-meta {
+    margin: 6px 0 0;
+    color: var(--text-light);
+    font-size: 0.84rem;
+    line-height: 1.45;
+}
+
+.booking-calendar-body .reservation-selected-date {
+    margin-bottom: 10px;
+}
+
+.booking-calendar-body .reservation-status {
+    min-height: 54px;
+}
+
 .field-guest {
     grid-column: span 2;
 }
@@ -556,5 +662,40 @@ body.modal-open {
     .payment-header,
     .pay-section {
         padding: 18px 16px;
+    }
+
+    .booking-date-field {
+        position: static;
+    }
+
+    .booking-calendar-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 999;
+        display: block;
+        background: rgba(10, 10, 10, 0.46);
+    }
+
+    .booking-calendar-popover {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        width: auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+    }
+
+    .booking-calendar-dialog {
+        width: min(520px, 100%);
+        max-height: calc(100vh - 32px);
+        overflow: auto;
+    }
+
+    .booking-calendar-header,
+    .booking-calendar-body {
+        padding-left: 16px;
+        padding-right: 16px;
     }
 }

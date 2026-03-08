@@ -109,11 +109,11 @@ python server.py
 |------|------|--------|
 | `GEMINI_API_KEY` | Gemini API 키 **(필수)** | - |
 | `GEMINI_MODEL` | 사용할 Gemini 모델 | `gemini-2.5-flash-lite` |
-| `PORT` | 서버 포트 | `8001` |
+| `PORT` | 서버 포트 | `8000` |
 | `CORS_ORIGINS` | 허용할 오리진 목록 (쉼표 구분) | `http://localhost:8000` |
 | `BASE_WEEKDAY_RATE` | 평일 1박 요금 | `150000` |
 | `BASE_WEEKEND_RATE` | 주말 1박 요금 | `200000` |
-| `BASE_GUESTS` / `MAX_GUESTS` | 기본/최대 인원 | `2` / `6` |
+| `BASE_GUESTS` / `MAX_GUESTS` | 기본/최대 인원 | `2` / `8` |
 | `ADULT_EXTRA_FEE` | 추가 인원 요금 (1인/1박) | `20000` |
 | `BBQ_FEE` | BBQ 옵션 요금 | `20000` |
 | `TOSSPAYMENTS_WIDGET_CLIENT_KEY` | 토스 위젯 클라이언트 키 | - |

@@ -200,6 +200,239 @@
     font-weight: 600;
 }
 
+.reservation-calendar-shell {
+    display: grid;
+    justify-items: center;
+    margin-bottom: 10px;
+}
+
+.reservation-calendar {
+    width: 100%;
+    min-width: 0;
+}
+
+.reservation-calendar-shell.calendar-mounted-outside .reservation-calendar {
+    width: 0;
+    height: 0;
+    overflow: hidden;
+}
+
+.reservation-calendar-shell .flatpickr-calendar.inline {
+    background: #fff;
+    box-shadow: 0 8px 22px rgba(31, 25, 20, 0.08);
+    width: min(100%, 420px);
+    border: 1px solid rgba(31, 25, 20, 0.11);
+    border-radius: 14px;
+    padding: 12px 10px 10px;
+    margin: 0 auto;
+    overflow: visible;
+}
+
+.reservation-calendar-shell .flatpickr-rContainer,
+.reservation-calendar-shell .flatpickr-days,
+.reservation-calendar-shell .dayContainer,
+.reservation-calendar-shell .flatpickr-weekdays,
+.reservation-calendar-shell .flatpickr-weekdaycontainer {
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    overflow: visible;
+}
+
+.reservation-calendar-shell .flatpickr-months .flatpickr-month {
+    height: 48px;
+}
+
+.reservation-calendar-shell .flatpickr-current-month {
+    font-size: 1.16rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 7px;
+}
+
+.reservation-calendar-shell .flatpickr-current-month .cur-month,
+.reservation-calendar-shell .flatpickr-current-month .numInputWrapper {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.reservation-calendar-shell .flatpickr-current-month::after {
+    content: attr(data-label);
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-color);
+    font-weight: 700;
+}
+
+.reservation-calendar-shell .flatpickr-prev-month,
+.reservation-calendar-shell .flatpickr-next-month {
+    top: 8px;
+    padding: 6px;
+}
+
+.reservation-calendar-shell .flatpickr-prev-month.flatpickr-disabled {
+    visibility: hidden;
+    display: block;
+}
+
+.reservation-calendar-shell .flatpickr-weekday {
+    color: var(--text-light);
+    font-size: 0.82rem;
+    font-weight: 700;
+    flex: 0 0 calc(100% / 7);
+    max-width: calc(100% / 7);
+    width: calc(100% / 7);
+}
+
+.reservation-calendar-shell .flatpickr-weekday:nth-child(1) {
+    color: #d14a4a;
+}
+
+.reservation-calendar-shell .flatpickr-weekday:nth-child(7) {
+    color: #3f6fca;
+}
+
+.reservation-calendar-shell .flatpickr-day {
+    border-radius: 10px;
+    line-height: 42px;
+    height: 42px;
+    flex: 0 0 calc(100% / 7);
+    width: calc(100% / 7);
+    max-width: calc(100% / 7);
+    font-size: 0.9rem;
+    border: 1px solid transparent;
+    box-sizing: border-box;
+    position: relative;
+    overflow: visible;
+}
+
+.reservation-calendar-shell .flatpickr-day.prevMonthDay,
+.reservation-calendar-shell .flatpickr-day.nextMonthDay {
+    visibility: hidden;
+    pointer-events: none;
+    border-color: transparent !important;
+    background: transparent !important;
+}
+
+.reservation-calendar-shell .flatpickr-day.status-booked {
+    background: rgba(31, 25, 20, 0.1);
+    border-color: transparent;
+    color: rgba(31, 25, 20, 0.35);
+    text-decoration: line-through;
+}
+
+.reservation-calendar-shell .flatpickr-day.status-available {
+    border-color: rgba(47, 74, 58, 0.34);
+    color: var(--text-color);
+}
+
+.reservation-calendar-shell .flatpickr-day.day-sunday {
+    color: #d14a4a;
+    font-weight: 600;
+}
+
+.reservation-calendar-shell .flatpickr-day.day-saturday {
+    color: #3f6fca;
+    font-weight: 600;
+}
+
+.reservation-calendar-shell .flatpickr-day.day-holiday {
+    color: #d14a4a;
+    font-weight: 700;
+}
+
+.reservation-calendar-shell .flatpickr-day.status-booked.day-sunday {
+    color: #d14a4a;
+}
+
+.reservation-calendar-shell .flatpickr-day.status-booked.day-saturday {
+    color: #3f6fca;
+}
+
+.reservation-calendar-shell .flatpickr-day.status-booked.day-holiday {
+    color: #d14a4a;
+}
+
+.reservation-calendar-shell .flatpickr-day.selected,
+.reservation-calendar-shell .flatpickr-day.startRange,
+.reservation-calendar-shell .flatpickr-day.endRange {
+    background: rgba(47, 74, 58, 0.95);
+    border-color: rgba(47, 74, 58, 0.95);
+    color: rgba(251, 247, 239, 0.98);
+}
+
+.calendar-legend {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.9rem;
+    color: var(--text-light);
+}
+
+.legend-dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.legend-dot.available {
+    background: #2f4a3a;
+}
+
+.legend-dot.booked {
+    background: rgba(31, 25, 20, 0.3);
+}
+
+.reservation-selected-date {
+    margin: 0 0 8px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(31, 25, 20, 0.12);
+    font-size: 0.88rem;
+    color: var(--text-light);
+}
+
+.reservation-status {
+    text-align: center;
+    font-size: 0.95rem;
+    border: 1px solid rgba(31, 25, 20, 0.13);
+    border-radius: 12px;
+    background: #fff;
+    color: var(--text-color);
+    padding: 12px 14px;
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.reservation-status.is-available {
+    border-color: rgba(47, 74, 58, 0.42);
+    background: rgba(47, 74, 58, 0.08);
+}
+
+.reservation-status.is-booked {
+    border-color: rgba(31, 25, 20, 0.3);
+    background: rgba(31, 25, 20, 0.08);
+}
+
 @media (max-width: 900px) {
     .reservation-check-grid {
         grid-template-columns: 1fr;
@@ -241,6 +474,17 @@
 
     .reservation-panel {
         padding: 16px;
+    }
+
+    .reservation-calendar-shell .flatpickr-calendar.inline {
+        max-width: 100%;
+        padding: 12px 8px;
+    }
+
+    .reservation-calendar-shell .flatpickr-day {
+        max-width: calc(100% / 7);
+        height: 36px;
+        line-height: 36px;
     }
 
 }

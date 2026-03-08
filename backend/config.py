@@ -36,7 +36,7 @@ BASE_WEEKEND_RATE = int(os.getenv("BASE_WEEKEND_RATE", "242612"))
 
 # 인원 관련 상수
 BASE_GUESTS = int(os.getenv("BASE_GUESTS", "2"))  # 기본 인원 (추가 요금 없음)
-MAX_GUESTS = int(os.getenv("MAX_GUESTS", "6"))  # 최대 수용 인원
+MAX_GUESTS = int(os.getenv("MAX_GUESTS", "8"))  # 최대 수용 인원
 
 # 추가 요금
 ADULT_EXTRA_FEE = int(os.getenv("ADULT_EXTRA_FEE", "20000"))  # 추가 인원 1인당 1박 요금

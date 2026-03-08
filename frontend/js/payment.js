@@ -15,6 +15,13 @@
     const nightsSelect = document.getElementById("booking-nights-visible");
     const arrivalTimeSelect = document.getElementById("arrival-time");
     const requestNoteInput = document.getElementById("request-note");
+    const bookingDateField = document.querySelector(".booking-date-field");
+    const bookingCalendarBackdrop = bookingDateField
+        ? bookingDateField.querySelector(".booking-calendar-backdrop")
+        : null;
+    const bookingCalendarCloseBtn = bookingDateField
+        ? bookingDateField.querySelector(".booking-calendar-close")
+        : null;
 
     const customerNameInput = document.getElementById("customer-name");
     const customerPhoneInput = document.getElementById("customer-phone");
@@ -43,7 +50,7 @@
     const termsVersionLabel = document.querySelector(".terms-version");
 
 
-    const MAX_GUESTS = 6;
+    const MAX_GUESTS = 8;
     const TERMS_VERSION = "2026-02-24-v1";
     const GUEST_GROUPS = ["adults"];
     const BASE_GUESTS = 2;
@@ -71,6 +78,9 @@
     };
 
     let lastQuote = null;
+    let bookingCalendarController = null;
+    let restoreCheckinFocusOnClose = false;
+    let suppressCheckinFocusOpen = false;
 
     // ── 토스페이먼츠 V2 결제위젯 상태 ──
     let tossWidgets = null;
@@ -203,6 +213,9 @@
         return Number.isNaN(parsed.getTime()) ? null : parsed;
     };
 
+    const parseBoolean = (value) =>
+        ["1", "true", "yes", "on"].includes(String(value || "").trim().toLowerCase());
+
     const formatKrw = (amount) => `${Number(amount || 0).toLocaleString("ko-KR")}원`;
 
     const setStatus = (text, type = "") => {
@@ -212,6 +225,109 @@
         if (type) {
             statusMessageEl.classList.add(type);
         }
+    };
+
+    const syncCheckinInputs = (checkinDate) => {
+        const safeCheckin = String(checkinDate || "");
+        if (checkinInput) checkinInput.value = safeCheckin;
+        if (hiddenCheckinInput) hiddenCheckinInput.value = safeCheckin;
+    };
+
+    const syncNightsInputs = (nights) => {
+        const safeNights = String(Math.min(5, Math.max(1, Number(nights || 1))));
+        if (nightsSelect) nightsSelect.value = safeNights;
+        if (hiddenNightsInput) hiddenNightsInput.value = safeNights;
+    };
+
+    const syncCalendarSelection = () => {
+        if (!bookingCalendarController) return;
+        bookingCalendarController.setSelection({
+            checkinDate: hiddenCheckinInput ? hiddenCheckinInput.value : "",
+            nights: Number(hiddenNightsInput ? hiddenNightsInput.value : 1),
+        });
+    };
+
+    const onCalendarOpenChange = (isOpen) => {
+        if (checkinInput) {
+            checkinInput.setAttribute("aria-expanded", String(Boolean(isOpen)));
+        }
+
+        if (!isOpen && restoreCheckinFocusOnClose && checkinInput) {
+            restoreCheckinFocusOnClose = false;
+            suppressCheckinFocusOpen = true;
+            checkinInput.focus();
+            window.setTimeout(() => {
+                suppressCheckinFocusOpen = false;
+            }, 0);
+        }
+    };
+
+    const openBookingCalendar = () => {
+        if (!bookingCalendarController) return;
+        syncCalendarSelection();
+        bookingCalendarController.open();
+    };
+
+    const closeBookingCalendar = (restoreFocus = false) => {
+        const isCalendarOpen = Boolean(
+            bookingDateField && bookingDateField.classList.contains("is-calendar-open")
+        );
+        restoreCheckinFocusOnClose = restoreFocus && isCalendarOpen;
+        if (!bookingCalendarController) {
+            if (restoreCheckinFocusOnClose) {
+                suppressCheckinFocusOpen = true;
+                checkinInput?.focus();
+                window.setTimeout(() => {
+                    suppressCheckinFocusOpen = false;
+                }, 0);
+            }
+            return;
+        }
+        bookingCalendarController.close();
+    };
+
+    const resolveInitialStay = (preferredCheckin, preferredNights) => {
+        if (!bookingCalendarController) {
+            return {
+                checkinDate: preferredCheckin,
+                nights: preferredNights,
+            };
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const startDate = parseYmd(preferredCheckin) || new Date(today);
+        startDate.setHours(0, 0, 0, 0);
+        if (startDate < today) {
+            startDate.setTime(today.getTime());
+        }
+
+        const tryFindStay = (targetNights) => {
+            for (let offset = 0; offset < 540; offset += 1) {
+                const candidate = new Date(startDate);
+                candidate.setDate(startDate.getDate() + offset);
+                const candidateDate = toYmd(candidate);
+                const validation = bookingCalendarController.validateStay({
+                    checkinDate: candidateDate,
+                    nights: targetNights,
+                });
+                if (validation.ok) {
+                    return {
+                        checkinDate: candidateDate,
+                        nights: validation.nights,
+                    };
+                }
+            }
+            return null;
+        };
+
+        return (
+            tryFindStay(preferredNights) ||
+            tryFindStay(1) || {
+                checkinDate: "",
+                nights: 1,
+            }
+        );
     };
 
     const formatPhone = (value) => {
@@ -362,8 +478,8 @@
             total_amount: totalAmount,
         };
 
-        if (hiddenCheckinInput) hiddenCheckinInput.value = safeQuote.checkin_date || "";
-        if (hiddenNightsInput) hiddenNightsInput.value = String(nights);
+        syncCheckinInputs(safeQuote.checkin_date || (hiddenCheckinInput ? hiddenCheckinInput.value : ""));
+        syncNightsInputs(nights);
 
         if (panelRoomAmountEl) panelRoomAmountEl.textContent = formatKrw(roomAmount);
         if (extraGuestsEl) extraGuestsEl.textContent = `${extraInfo.extraGuests}명`;
@@ -380,37 +496,29 @@
         initOrUpdateTossWidgets(totalAmount);
     };
 
-    let holidayDates = new Set();
-    let bookedDates = new Set();
-
-    const hasBlockedNightInRange = (checkin, nights) => {
-        const cursor = new Date(checkin);
-        for (let i = 0; i < nights; i++) {
-            const ymd = toYmd(cursor);
-            if (bookedDates.has(ymd)) {
-                return true;
-            }
-            cursor.setDate(cursor.getDate() + 1);
-        }
-        return false;
-    };
-
     const fetchQuote = async () => {
-        const checkinDate = checkinInput ? checkinInput.value : "";
-        const nights = Number(nightsSelect ? nightsSelect.value : 1);
+        const checkinDate = hiddenCheckinInput ? hiddenCheckinInput.value : "";
+        const nights = Number(hiddenNightsInput ? hiddenNightsInput.value : nightsSelect?.value || 1);
 
         if (!checkinDate) {
             setStatus("체크인 날짜를 선택해 주세요.", "error");
             return null;
         }
 
-        const parsedCheckin = parseYmd(checkinDate);
-        if (parsedCheckin && hasBlockedNightInRange(parsedCheckin, nights)) {
+        const stayValidation = bookingCalendarController
+            ? bookingCalendarController.validateStay({
+                checkinDate,
+                nights,
+            })
+            : { ok: true };
+
+        if (!stayValidation.ok) {
+            setStatus(stayValidation.message || "선택한 숙박 기간을 확인해 주세요.", "error");
             if (paySubmitBtn) paySubmitBtn.disabled = true;
             return null;
-        } else {
-            if (paySubmitBtn) paySubmitBtn.disabled = false;
         }
+
+        if (paySubmitBtn) paySubmitBtn.disabled = false;
 
         try {
             const response = await fetch(apiUrl("/api/payment/quote"), {
@@ -440,16 +548,22 @@
     };
 
     const validateRequired = () => {
-        if (!checkinInput || !checkinInput.value) {
+        const checkinDate = hiddenCheckinInput ? hiddenCheckinInput.value : "";
+        if (!checkinDate) {
             setStatus("체크인 날짜를 선택해 주세요.", "error");
             if (checkinInput) checkinInput.focus();
             return false;
         }
 
         const nights = Number(nightsSelect ? nightsSelect.value : 1);
-        const parsedCheckin = parseYmd(checkinInput.value);
-        if (parsedCheckin && hasBlockedNightInRange(parsedCheckin, nights)) {
-            setStatus("선택한 숙박 기간에 이미 예약된 날짜가 포함되어 있습니다.", "error");
+        const stayValidation = bookingCalendarController
+            ? bookingCalendarController.validateStay({
+                checkinDate,
+                nights,
+            })
+            : { ok: true };
+        if (!stayValidation.ok) {
+            setStatus(stayValidation.message || "선택한 숙박 기간에 이미 예약된 날짜가 포함되어 있습니다.", "error");
             return false;
         }
 
@@ -546,6 +660,7 @@
 
     const initDefaultValues = async () => {
         const today = new Date();
+        today.setHours(0, 0, 0, 0);
         const tomorrow = new Date(today);
         tomorrow.setDate(today.getDate() + 1);
 
@@ -554,11 +669,11 @@
         const queryCheckin = qs.get("checkin");
         const queryNights = Number(qs.get("nights") || 1);
         const parsedQueryDate = queryCheckin ? parseYmd(queryCheckin) : null;
-        const selectedDate =
+        const preferredCheckin =
             parsedQueryDate && queryCheckin >= minDate ? queryCheckin : toYmd(tomorrow);
 
         const safeNights = Number.isFinite(queryNights) ? Math.min(5, Math.max(1, queryNights)) : 1;
-        if (nightsSelect) nightsSelect.value = String(safeNights);
+        syncNightsInputs(safeNights);
 
         const adultsFromQuery = Number(qs.get("adults") || guestState.adults);
 
@@ -569,71 +684,40 @@
         if (bbqCheckbox) bbqCheckbox.checked = parseBoolean(qs.get("bbq"));
         if (petCheckbox) petCheckbox.checked = parseBoolean(qs.get("pet")) || parseBoolean(qs.get("pet_with"));
 
-        try {
-            const rangeEnd = new Date(today);
-            rangeEnd.setMonth(rangeEnd.getMonth() + 3);
-
-            const [availability, calendarConfig] = await Promise.all([
-                fetch(apiUrl(`/api/calendar/availability?start=${toYmd(today)}&end=${toYmd(rangeEnd)}`)).then(r => r.json()).catch(() => ({ booked_dates: [] })),
-                fetch(apiUrl(`/api/calendar/config`)).then(r => r.json()).catch(() => ({ holiday_dates: [] }))
-            ]);
-
-            if (Array.isArray(availability.booked_dates)) {
-                availability.booked_dates.forEach((value) => {
-                    if (typeof value === 'string' && value.trim()) bookedDates.add(value.trim());
-                });
-            }
-            if (Array.isArray(calendarConfig.holiday_dates)) {
-                calendarConfig.holiday_dates.forEach((value) => {
-                    if (typeof value === 'string' && value.trim()) holidayDates.add(value.trim());
-                });
-            }
-        } catch (error) {
-            console.error("Failed to load calendar data:", error);
-        }
-
-        if (checkinInput) {
-            flatpickr(checkinInput, {
-                locale: typeof flatpickr !== 'undefined' && flatpickr.l10ns && flatpickr.l10ns.ko ? flatpickr.l10ns.ko : undefined,
-                dateFormat: 'Y-m-d',
-                disableMobile: true,
-                minDate: 'today',
-                defaultDate: selectedDate,
-                disable: [
-                    (date) => {
-                        const dateStr = toYmd(date);
-                        return dateStr < minDate || bookedDates.has(dateStr);
-                    }
-                ],
-                onDayCreate: (_dObj, _dStr, _fp, dayElement) => {
-                    if (dayElement.classList.contains('prevMonthDay') || dayElement.classList.contains('nextMonthDay')) {
-                        return;
-                    }
-                    const day = dayElement.dateObj.getDay();
-                    if (day === 0) dayElement.classList.add('day-sunday');
-                    if (day === 6) dayElement.classList.add('day-saturday');
-
-                    const ymd = toYmd(dayElement.dateObj);
-                    if (holidayDates.has(ymd)) {
-                        dayElement.classList.add('day-holiday');
-                    }
-                },
-                onChange: (selectedDates, dateStr) => {
-                    let nights = Number(nightsSelect ? nightsSelect.value : 1);
-                    const parsedCheckin = parseYmd(dateStr);
-                    if (parsedCheckin && hasBlockedNightInRange(parsedCheckin, nights)) {
-                        alert(`선택하신 체크인 날짜부터 ${nights}박 기간 내에 이미 예약된 날짜가 포함되어 있습니다.\n숙박 일수를 1박으로 변경합니다.`);
-                        nights = 1;
-                        if (nightsSelect) nightsSelect.value = "1";
-                        if (hiddenNightsInput) hiddenNightsInput.value = "1";
-                    }
-                    if (hiddenCheckinInput) hiddenCheckinInput.value = dateStr;
+        if (window.WatermillReservationCalendar?.createAvailabilityCalendar) {
+            bookingCalendarController = window.WatermillReservationCalendar.createAvailabilityCalendar({
+                calendarId: "booking-calendar",
+                selectedDateId: "booking-calendar-selected-date",
+                statusId: "booking-calendar-status",
+                maxNights: 5,
+                initialCheckin: preferredCheckin,
+                initialNights: safeNights,
+                autoCloseOnValidRange: true,
+                onOpenChange: onCalendarOpenChange,
+                onValidRangeSelect: ({ checkinDate, nights }) => {
+                    syncCheckinInputs(checkinDate);
+                    syncNightsInputs(nights);
+                    setStatus("");
                     fetchQuote();
-                }
+                },
             });
-        }
 
-        if (hiddenCheckinInput) hiddenCheckinInput.value = selectedDate;
+            const calendarReady = await bookingCalendarController.ready;
+            if (calendarReady) {
+                const initialStay = resolveInitialStay(preferredCheckin, safeNights);
+                syncCheckinInputs(initialStay.checkinDate);
+                syncNightsInputs(initialStay.nights);
+                bookingCalendarController.setSelection(initialStay);
+            } else {
+                bookingCalendarController = null;
+                setStatus("예약 달력을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.", "error");
+                syncCheckinInputs(preferredCheckin);
+            }
+        } else {
+            bookingCalendarController = null;
+            setStatus("예약 달력 모듈을 찾을 수 없습니다.", "error");
+            syncCheckinInputs(preferredCheckin);
+        }
 
         syncGuestUi();
         syncOptionChecks();
@@ -696,17 +780,72 @@
         });
     }
 
-    if (nightsSelect) {
-        nightsSelect.addEventListener("change", (e) => {
-            const checkinDate = checkinInput ? checkinInput.value : "";
-            const nights = Number(e.target.value);
-            const parsedCheckin = parseYmd(checkinDate);
-            if (parsedCheckin && hasBlockedNightInRange(parsedCheckin, nights)) {
-                alert("선택하신 숙박 기간에 이미 예약된 날짜가 포함되어 있습니다.\n다른 숙박 일수를 선택해 주세요.");
-                e.target.value = hiddenNightsInput ? hiddenNightsInput.value : "1";
+    if (checkinInput) {
+        checkinInput.addEventListener("click", () => {
+            openBookingCalendar();
+        });
+
+        checkinInput.addEventListener("focus", () => {
+            if (suppressCheckinFocusOpen) {
+                suppressCheckinFocusOpen = false;
                 return;
             }
-            if (hiddenNightsInput) hiddenNightsInput.value = String(nights);
+            openBookingCalendar();
+        });
+
+        checkinInput.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                openBookingCalendar();
+                return;
+            }
+
+            if (event.key === "Escape") {
+                event.preventDefault();
+                closeBookingCalendar(true);
+            }
+        });
+    }
+
+    if (bookingCalendarBackdrop) {
+        bookingCalendarBackdrop.addEventListener("click", () => {
+            closeBookingCalendar(true);
+        });
+    }
+
+    if (bookingCalendarCloseBtn) {
+        bookingCalendarCloseBtn.addEventListener("click", () => {
+            closeBookingCalendar(true);
+        });
+    }
+
+    if (nightsSelect) {
+        nightsSelect.addEventListener("change", (e) => {
+            const previousNights = Number(hiddenNightsInput ? hiddenNightsInput.value : 1);
+            const nextNights = Number(e.target.value);
+            const checkinDate = hiddenCheckinInput ? hiddenCheckinInput.value : "";
+
+            if (!checkinDate) {
+                syncNightsInputs(nextNights);
+                return;
+            }
+
+            const stayValidation = bookingCalendarController
+                ? bookingCalendarController.validateStay({
+                    checkinDate,
+                    nights: nextNights,
+                })
+                : { ok: true };
+
+            if (!stayValidation.ok) {
+                setStatus(stayValidation.message || "선택하신 숙박 기간을 확인해 주세요.", "error");
+                syncNightsInputs(previousNights);
+                syncCalendarSelection();
+                return;
+            }
+
+            syncNightsInputs(nextNights);
+            syncCalendarSelection();
             fetchQuote();
         });
     }
@@ -728,7 +867,14 @@
     document.addEventListener("keydown", (event) => {
         if (event.key === "Escape") {
             closeTermsModal();
+            closeBookingCalendar(true);
         }
+    });
+
+    document.addEventListener("mousedown", (event) => {
+        if (!bookingDateField || !bookingDateField.classList.contains("is-calendar-open")) return;
+        if (bookingDateField.contains(event.target)) return;
+        closeBookingCalendar(false);
     });
 
     initDefaultValues().then(() => {
