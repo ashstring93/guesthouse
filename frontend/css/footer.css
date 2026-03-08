@@ -52,6 +52,21 @@
     font-family: var(--font-body);
 }
 
+.route-button-group {
+    display: grid;
+    gap: 0.7rem;
+}
+
+.route-link-button {
+    display: block;
+    text-align: center;
+    text-decoration: none;
+}
+
+.route-link-button-secondary {
+    background-color: #5a6a60;
+}
+
 /* Footer */
 footer {
     background-color: #1f1914;
