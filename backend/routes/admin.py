@@ -225,4 +225,11 @@ async def admin_dashboard_page():
             content="<h2>관리자 대시보드 페이지가 존재하지 않습니다.</h2>",
             status_code=404,
         )
-    return FileResponse(admin_html)
+    return FileResponse(
+        admin_html,
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
