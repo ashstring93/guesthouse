@@ -11,9 +11,9 @@ SQLite 커넥션 관리, 테이블 초기화, 그리고 데이터 저장/조회 
 import json
 import sqlite3
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import date, datetime, timedelta
 
-from config import DB_PATH, PAYMENT_TERMS_CATALOG
+from config import BOOKED_STATUS_FILTER, DB_PATH, PAYMENT_TERMS_CATALOG
 
 
 # ── 커넥션 관리 ──
@@ -48,8 +48,8 @@ def get_db():
 def init_db():
     """로컬 SQLite 테이블을 초기화합니다.
 
-    chat_logs, payment_intents, payment_term_consents 세 테이블을 생성하며,
-    이미 존재하는 경우 무시합니다.
+    chat_logs, payment_intents, payment_term_consents, admin_date_blocks
+    네 테이블을 생성하며, 이미 존재하는 경우 무시합니다.
     """
     with get_db() as conn:
         conn.executescript(
@@ -111,8 +111,198 @@ def init_db():
             );
             CREATE INDEX IF NOT EXISTS idx_ptc_order
                 ON payment_term_consents(order_id);
+
+            -- 관리자 수동 차단 일정: 특정 날짜/기간을 예약 불가로 잠금
+            CREATE TABLE IF NOT EXISTS admin_date_blocks (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+                start_date  TEXT NOT NULL,
+                end_date    TEXT NOT NULL,
+                reason      TEXT DEFAULT '',
+                UNIQUE(start_date, end_date),
+                CHECK(end_date >= start_date)
+            );
+            CREATE INDEX IF NOT EXISTS idx_adb_range
+                ON admin_date_blocks(start_date, end_date);
         """
         )
+
+
+def _expand_date_strings(start_date: date, end_date: date) -> set[str]:
+    """두 날짜 사이의 ISO 날짜 문자열(종료일 포함) 집합을 생성합니다."""
+    if end_date < start_date:
+        return set()
+
+    return {
+        (start_date + timedelta(days=offset)).isoformat()
+        for offset in range((end_date - start_date).days + 1)
+    }
+
+
+def get_booked_date_strings(start_date: date, end_date: date) -> set[str]:
+    """예약 상태 기준으로 이미 점유된 날짜 목록을 반환합니다."""
+    if end_date < start_date:
+        return set()
+
+    query = """
+        SELECT checkin_date, nights
+        FROM payment_intents
+        WHERE checkin_date IS NOT NULL
+          AND nights IS NOT NULL
+    """
+    params: list[str] = []
+    if BOOKED_STATUS_FILTER:
+        placeholders = ",".join(["?"] * len(BOOKED_STATUS_FILTER))
+        query += f" AND lower(status) IN ({placeholders})"
+        params.extend(BOOKED_STATUS_FILTER)
+
+    booked_dates: set[str] = set()
+    with get_db() as conn:
+        rows = conn.execute(query, params).fetchall()
+
+    for checkin_str, nights_value in rows:
+        try:
+            checkin = datetime.strptime(str(checkin_str), "%Y-%m-%d").date()
+            nights = int(nights_value)
+        except (ValueError, TypeError):
+            continue
+
+        if nights <= 0:
+            continue
+
+        last_stay_date = checkin + timedelta(days=nights - 1)
+        if last_stay_date < start_date or checkin > end_date:
+            continue
+
+        overlap_start = max(checkin, start_date)
+        overlap_end = min(last_stay_date, end_date)
+        booked_dates.update(_expand_date_strings(overlap_start, overlap_end))
+
+    return booked_dates
+
+
+def get_admin_blocked_date_strings(start_date: date, end_date: date) -> set[str]:
+    """관리자가 수동 차단한 날짜 목록을 반환합니다."""
+    if end_date < start_date:
+        return set()
+
+    blocked_dates: set[str] = set()
+    with get_db() as conn:
+        rows = conn.execute(
+            """
+            SELECT start_date, end_date
+            FROM admin_date_blocks
+            WHERE start_date <= ?
+              AND end_date >= ?
+            ORDER BY start_date ASC, end_date ASC
+            """,
+            (end_date.isoformat(), start_date.isoformat()),
+        ).fetchall()
+
+    for range_start_str, range_end_str in rows:
+        try:
+            range_start = datetime.strptime(str(range_start_str), "%Y-%m-%d").date()
+            range_end = datetime.strptime(str(range_end_str), "%Y-%m-%d").date()
+        except (ValueError, TypeError):
+            continue
+
+        overlap_start = max(range_start, start_date)
+        overlap_end = min(range_end, end_date)
+        blocked_dates.update(_expand_date_strings(overlap_start, overlap_end))
+
+    return blocked_dates
+
+
+def get_unavailable_date_strings(start_date: date, end_date: date) -> set[str]:
+    """예약 점유일과 관리자 수동 차단일을 합친 예약 불가 날짜를 반환합니다."""
+    return get_booked_date_strings(start_date, end_date) | get_admin_blocked_date_strings(
+        start_date, end_date
+    )
+
+
+def get_stay_unavailable_date_strings(checkin_date: date, nights: int) -> list[str]:
+    """숙박 일정과 겹치는 예약 불가 날짜를 순서대로 반환합니다."""
+    safe_nights = max(1, int(nights or 1))
+    last_stay_date = checkin_date + timedelta(days=safe_nights - 1)
+    unavailable_dates = get_unavailable_date_strings(checkin_date, last_stay_date)
+
+    conflicts: list[str] = []
+    for offset in range(safe_nights):
+        target = (checkin_date + timedelta(days=offset)).isoformat()
+        if target in unavailable_dates:
+            conflicts.append(target)
+
+    return conflicts
+
+
+def list_admin_date_blocks() -> list[dict]:
+    """관리자 수동 차단 일정 목록을 반환합니다."""
+    with get_db() as conn:
+        rows = conn.execute(
+            """
+            SELECT id, created_at, start_date, end_date, reason
+            FROM admin_date_blocks
+            ORDER BY start_date ASC, end_date ASC, id DESC
+            """
+        ).fetchall()
+
+    return [dict(row) for row in rows]
+
+
+def upsert_admin_date_block(start_date: str, end_date: str, reason: str = "") -> dict:
+    """관리자 수동 차단 일정을 추가하거나 같은 범위가 있으면 사유만 갱신합니다."""
+    with get_db() as conn:
+        existing = conn.execute(
+            """
+            SELECT id
+            FROM admin_date_blocks
+            WHERE start_date = ? AND end_date = ?
+            """,
+            (start_date, end_date),
+        ).fetchone()
+
+        if existing:
+            conn.execute(
+                """
+                UPDATE admin_date_blocks
+                SET reason = ?
+                WHERE id = ?
+                """,
+                (reason, existing["id"]),
+            )
+            row = conn.execute(
+                """
+                SELECT id, created_at, start_date, end_date, reason
+                FROM admin_date_blocks
+                WHERE id = ?
+                """,
+                (existing["id"],),
+            ).fetchone()
+        else:
+            cursor = conn.execute(
+                """
+                INSERT INTO admin_date_blocks (start_date, end_date, reason)
+                VALUES (?, ?, ?)
+                """,
+                (start_date, end_date, reason),
+            )
+            row = conn.execute(
+                """
+                SELECT id, created_at, start_date, end_date, reason
+                FROM admin_date_blocks
+                WHERE id = ?
+                """,
+                (cursor.lastrowid,),
+            ).fetchone()
+
+    return dict(row)
+
+
+def delete_admin_date_block(block_id: int) -> bool:
+    """관리자 수동 차단 일정을 삭제합니다."""
+    with get_db() as conn:
+        cursor = conn.execute("DELETE FROM admin_date_blocks WHERE id = ?", (block_id,))
+        return cursor.rowcount > 0
 
 
 # ── 채팅 로그 저장 ──

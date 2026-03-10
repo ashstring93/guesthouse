@@ -17,10 +17,12 @@ HTML 페이지 파일 응답, 예약 페이지 리다이렉트, favicon 처리,
     GET  /api/health            → 서버 상태 확인
 """
 
-from fastapi import APIRouter, Request, Response
+from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse, RedirectResponse
 
 from config import FRONTEND_DIR, RESERVATION_PAGES_DIR
+
+LEGAL_PAGES_DIR = FRONTEND_DIR / "pages" / "legal"
 
 # prefix 없이 루트 경로에 마운트됩니다.
 router = APIRouter(tags=["pages"])
@@ -88,6 +90,21 @@ async def reservation_check_page():
     return FileResponse(RESERVATION_PAGES_DIR / "check.html")
 
 
+@router.get("/legal/preview")
+async def legal_preview_redirect(request: Request):
+    """약관/개인정보 처리방침 초안 페이지를 슬래시 경로로 정규화합니다."""
+    target = "preview/"
+    if request.url.query:
+        target = f"{target}?{request.url.query}"
+    return RedirectResponse(url=target, status_code=307)
+
+
+@router.get("/legal/preview/")
+async def legal_preview_page():
+    """약관·개인정보 처리방침 검토용 초안 페이지."""
+    return FileResponse(LEGAL_PAGES_DIR / "preview.html")
+
+
 # ── 구형 경로 호환 ──
 
 
@@ -110,7 +127,10 @@ async def reservation_pay_page(request: Request):
 @router.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     """Favicon 404 에러 방지를 위한 빈 응답."""
-    return Response(status_code=204)
+    return FileResponse(
+        FRONTEND_DIR / "images" / "favicon.ico",
+        media_type="image/vnd.microsoft.icon",
+    )
 
 
 @router.get("/api/health")

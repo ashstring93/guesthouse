@@ -10,17 +10,15 @@
 """
 
 import json
-from datetime import datetime, timedelta
 
 from fastapi import APIRouter, HTTPException, Query
 
 from config import (
     BASE_WEEKDAY_RATE,
     BASE_WEEKEND_RATE,
-    BOOKED_STATUS_FILTER,
     HOLIDAY_DATES,
 )
-from database import get_db
+from database import get_db, get_unavailable_date_strings
 from models import ReservationCheckRequest
 from utils import normalize_phone, parse_date_or_400
 
@@ -53,7 +51,7 @@ async def calendar_availability(
 ):
     """예약 현황 달력용 마감일 목록.
 
-    지정된 기간 내에서 이미 예약(pending/confirmed/paid)된 날짜를 반환합니다.
+    지정된 기간 내에서 이미 예약된 날짜와 관리자가 수동 차단한 날짜를 반환합니다.
     프론트엔드 캘린더에서 해당 날짜를 마감 표시하는 데 사용됩니다.
     """
     start_date = parse_date_or_400(start, "start")
@@ -64,38 +62,7 @@ async def calendar_availability(
     if (end_date - start_date).days > 730:
         raise HTTPException(status_code=400, detail="조회 기간은 최대 730일입니다.")
 
-    # DB에서 예약 건을 조회하여 체크인~체크아웃 범위의 날짜를 수집
-    query = """
-        SELECT checkin_date, nights, status
-        FROM payment_intents
-        WHERE checkin_date IS NOT NULL
-          AND nights IS NOT NULL
-    """
-    params: list[str] = []
-    if BOOKED_STATUS_FILTER:
-        placeholders = ",".join(["?"] * len(BOOKED_STATUS_FILTER))
-        query += f" AND lower(status) IN ({placeholders})"
-        params.extend(BOOKED_STATUS_FILTER)
-
-    booked_dates: set[str] = set()
-    with get_db() as conn:
-        rows = conn.execute(query, params).fetchall()
-
-    for checkin_str, nights_value, _status in rows:
-        try:
-            checkin = datetime.strptime(str(checkin_str), "%Y-%m-%d").date()
-            nights = int(nights_value)
-        except (ValueError, TypeError):
-            continue
-
-        if nights <= 0:
-            continue
-
-        # 체크인부터 숙박 일수만큼의 각 날짜를 마감 목록에 추가
-        for offset in range(nights):
-            target = checkin + timedelta(days=offset)
-            if start_date <= target <= end_date:
-                booked_dates.add(target.isoformat())
+    booked_dates = get_unavailable_date_strings(start_date, end_date)
 
     return {
         "start": start_date.isoformat(),

@@ -1,40 +1,5 @@
-<svg width="320" height="320" viewBox="0 0 320 320" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="logoTitle logoDesc">
-  <title id="logoTitle">물레방아하우스 심볼 로고 - 추녀 풍경</title>
-  <desc id="logoDesc">원형 한옥 지붕과 물레방아, 물결 조합에 추녀 풍경 장식을 더한 심볼 로고</desc>
-
-  <circle cx="160" cy="160" r="138" fill="#FBF7EF" stroke="#1F1914" stroke-width="7"/>
-  <circle cx="160" cy="160" r="118" stroke="#7B4B2A" stroke-width="3"/>
-  <g transform="translate(230 90)" stroke="#7B4B2A" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M-13 -2C-9 -10 -1 -12 7 -9C10 -8 12 -5 13 -2" stroke-width="2.6"/>
-    <line x1="7" y1="-9" x2="7" y2="8" stroke-width="2.1"/>
-    <path d="M2 11L7 7L12 11L7 15L2 11Z" fill="#F8F1E4" stroke-width="1.8"/>
-    <line x1="7" y1="15.5" x2="7" y2="21.5" stroke-width="1.8"/>
-    <line x1="4.5" y1="20" x2="7" y2="22.8" stroke-width="1.6"/>
-    <line x1="9.5" y1="20" x2="7" y2="22.8" stroke-width="1.6"/>
-  </g>
-
-  <g stroke="#1F1914" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M91 152L160 96L229 152" stroke-width="8"/>
-    <line x1="108" y1="162" x2="212" y2="162" stroke-width="5.5"/>
-    <line x1="131" y1="135" x2="131" y2="162" stroke-width="5"/>
-    <line x1="189" y1="135" x2="189" y2="162" stroke-width="5"/>
-  </g>
-
-  <g transform="translate(160 205)">
-    <circle r="34" fill="#F8F1E4" stroke="#2F4A3A" stroke-width="5"/>
-    <circle r="12" fill="#FBF7EF" stroke="#2F4A3A" stroke-width="3.5"/>
-    <g stroke="#2F4A3A" stroke-width="3.5" stroke-linecap="round">
-      <line x1="0" y1="-12" x2="0" y2="-30"/>
-      <line x1="0" y1="12" x2="0" y2="30"/>
-      <line x1="-12" y1="0" x2="-30" y2="0"/>
-      <line x1="12" y1="0" x2="30" y2="0"/>
-      <line x1="-9" y1="-9" x2="-21" y2="-21"/>
-      <line x1="9" y1="9" x2="21" y2="21"/>
-      <line x1="9" y1="-9" x2="21" y2="-21"/>
-      <line x1="-9" y1="9" x2="-21" y2="21"/>
-    </g>
-  </g>
-
-  <path d="M95 252C115 243 133 243 152 252C171 261 189 261 208 252C223 245 237 245 250 252" stroke="#7B4B2A" stroke-width="4.5" stroke-linecap="round"/>
-  <path d="M104 267C119 260 133 260 148 267C163 274 177 274 192 267C206 260 219 260 232 267" stroke="#C26A3B" stroke-width="4" stroke-linecap="round"/>
+  <svg width="1320" height="1320" viewBox="0 0 1320 1320" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" role="img" aria-labelledby="logoTitle logoDesc">
+  <title id="logoTitle">Watermill House logo</title>
+  <desc id="logoDesc">Circular Watermill House logo with transparent outer background</desc>
+  <image href="logo-lockup-minimal.png" xlink:href="logo-lockup-minimal.png" x="0" y="0" width="1320" height="1320" preserveAspectRatio="none"/>
 </svg>

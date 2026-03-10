@@ -5,6 +5,9 @@
 모든 관리자 API는 token 쿼리 파라미터로 인증합니다.
 
 엔드포인트:
+    GET  /api/admin/date-blocks      → 수동 차단 일정 목록 조회
+    POST /api/admin/date-blocks      → 수동 차단 일정 추가/갱신
+    DELETE /api/admin/date-blocks/{id} → 수동 차단 일정 삭제
     GET  /api/admin/reservations    → 전체 예약 목록 + 환불 예상 금액
     POST /api/admin/cancel-payment  → 결제 취소 (환불 정책 적용)
     GET  /admin/dashboard           → 관리자 대시보드 HTML 페이지
@@ -22,9 +25,14 @@ from config import (
     TOSSPAYMENTS_API_BASE,
     TOSSPAYMENTS_SECRET_KEY,
 )
-from database import get_db
-from models import CancelPaymentRequest
-from utils import calculate_refund_amount, toss_auth_header
+from database import (
+    delete_admin_date_block,
+    get_db,
+    list_admin_date_blocks,
+    upsert_admin_date_block,
+)
+from models import AdminDateBlockRequest, CancelPaymentRequest
+from utils import calculate_refund_amount, parse_date_or_400, toss_auth_header
 
 router = APIRouter(tags=["admin"])
 
@@ -40,6 +48,59 @@ def _verify_admin_token(token: str):
     """
     if not ADMIN_TOKEN or token != ADMIN_TOKEN:
         raise HTTPException(status_code=403, detail="관리자 인증에 실패했습니다.")
+
+
+# ── 수동 차단 일정 관리 ──
+
+
+@router.get("/api/admin/date-blocks")
+async def admin_list_date_blocks(token: str = Query("")):
+    """관리자용: 수동 차단 일정 목록 조회."""
+    _verify_admin_token(token)
+    return {"date_blocks": list_admin_date_blocks()}
+
+
+@router.post("/api/admin/date-blocks")
+async def admin_create_date_block(
+    request: AdminDateBlockRequest,
+    token: str = Query(""),
+):
+    """관리자용: 수동 차단 일정 추가 또는 동일 범위 사유 갱신."""
+    _verify_admin_token(token)
+
+    start_date = parse_date_or_400(request.start_date, "start_date")
+    end_date = parse_date_or_400(
+        request.end_date or request.start_date,
+        "end_date",
+    )
+
+    if end_date < start_date:
+        raise HTTPException(
+            status_code=400,
+            detail="end_date는 start_date 이후 또는 같은 날짜여야 합니다.",
+        )
+
+    date_block = upsert_admin_date_block(
+        start_date.isoformat(),
+        end_date.isoformat(),
+        request.reason.strip(),
+    )
+    return {"success": True, "date_block": date_block}
+
+
+@router.delete("/api/admin/date-blocks/{block_id}")
+async def admin_remove_date_block(block_id: int, token: str = Query("")):
+    """관리자용: 수동 차단 일정 삭제."""
+    _verify_admin_token(token)
+
+    if block_id <= 0:
+        raise HTTPException(status_code=400, detail="유효한 차단 일정 ID가 필요합니다.")
+
+    deleted = delete_admin_date_block(block_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="해당 차단 일정을 찾을 수 없습니다.")
+
+    return {"success": True}
 
 
 # ── 예약 목록 조회 ──

@@ -69,12 +69,12 @@ ENV_HOLIDAY_DATES = {
 HOLIDAY_DATES = DYNAMIC_HOLIDAY_DATES | ENV_HOLIDAY_DATES
 
 # ── 약관/예약 상태 필터 ──
-TERMS_VERSION = os.getenv("PAYMENT_TERMS_VERSION", "2026-02-24-v1").strip()
+TERMS_VERSION = os.getenv("PAYMENT_TERMS_VERSION", "2026-03-09-v1").strip()
 
 # 예약 현황 캘린더에서 마감으로 표시할 결제 상태 목록
 BOOKED_STATUS_FILTER = tuple(
     status.strip().lower()
-    for status in os.getenv("BOOKED_STATUSES", "pending,confirmed,paid").split(",")
+    for status in os.getenv("BOOKED_STATUSES", "confirming,confirmed,paid").split(",")
     if status.strip()
 )
 
@@ -110,6 +110,39 @@ PAYMENT_TERMS_CATALOG = {
 # 챗봇 응답 텍스트에 특정 키워드가 포함되면, 관련 이미지를 응답 끝에 자동 첨부합니다.
 # 키: 감지할 키워드 (응답 텍스트에 포함 여부 확인)
 # 값: 첨부할 이미지 목록 (alt=설명, path=정적 파일 경로)
+PAYMENT_TERMS_CATALOG.update(
+    {
+        "policy": {
+            "title": "숙소 이용 및 환불규정 동의",
+            "snapshot_text": (
+                "체크인은 오후 3시 이후, 체크아웃은 오전 11시까지이며, 체크인 7일 전까지 취소 시 100% 환불, "
+                "6일~3일 전 취소 시 50% 환불, 2일 이내 취소는 환불이 어렵습니다."
+            ),
+        },
+        "privacy": {
+            "title": "개인정보 수집 및 이용동의",
+            "snapshot_text": (
+                "수집 항목은 예약자명, 연락처, 체크인 일정, 결제 관련 확인 정보이며, 예약 확인, 숙박 서비스 제공, "
+                "결제 처리, 문의 응대, 관계 법령상 거래기록 보존 목적으로 이용합니다."
+            ),
+        },
+        "thirdparty": {
+            "title": "결제 처리 관련 개인정보 제공 동의",
+            "snapshot_text": (
+                "제공 대상은 토스페이먼츠, 카드사, 은행, 간편결제 사업자 등 결제수단 관련 사업자이며, "
+                "제공 항목은 예약자명, 연락처, 주문번호, 결제금액 등 결제 승인과 환불 처리에 필요한 정보입니다."
+            ),
+        },
+        "adult": {
+            "title": "성인 본인 예약 확인",
+            "snapshot_text": (
+                "예약자는 만 19세 이상 성인이며 본인 명의로 예약과 결제를 진행하고, 미성년자의 무단 예약이 확인되는 경우 "
+                "추가 확인 또는 예약 취소가 이뤄질 수 있음을 확인합니다."
+            ),
+        },
+    }
+)
+
 CHATBOT_IMAGE_MAP = {
     "주차": [
         {"alt": "집 앞 대로변 주차장", "path": "/images/chatbot/parking-street.png"},

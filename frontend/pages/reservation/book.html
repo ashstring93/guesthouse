@@ -5,6 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>물레방아하우스 객실 예약</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
     <link rel="stylesheet" href="../../css/style.css">
     <link rel="stylesheet" href="../../css/responsive.css">
     <link rel="stylesheet" href="../../css/reservation-hub.css">
@@ -179,7 +182,7 @@
 
                 <section class="pay-section">
                     <div class="terms-head">
-                        <h2>약관동의</h2>
+                        <h2>필수 약관 동의</h2>
                         <label class="checkbox-wrap all-agree">
                             <input type="checkbox" id="agree-all">
                             <span>모두동의</span>
@@ -189,7 +192,7 @@
                         <div class="term-row">
                             <label class="checkbox-wrap">
                                 <input type="checkbox" id="agree-policy" class="agree-required" data-term-key="policy">
-                                <span>유의사항/환불규정 동의 (필수)</span>
+                                <span>숙소 이용 및 환불규정 동의 (필수)</span>
                             </label>
                             <button type="button" class="term-view-btn" data-term-key="policy"
                                 aria-haspopup="dialog">내용보기</button>
@@ -207,7 +210,7 @@
                             <label class="checkbox-wrap">
                                 <input type="checkbox" id="agree-thirdparty" class="agree-required"
                                     data-term-key="thirdparty">
-                                <span>개인정보 제3자 제공동의 (필수)</span>
+                                <span>결제 처리 관련 개인정보 제공 동의 (필수)</span>
                             </label>
                             <button type="button" class="term-view-btn" data-term-key="thirdparty"
                                 aria-haspopup="dialog">내용보기</button>
@@ -215,12 +218,16 @@
                         <div class="term-row">
                             <label class="checkbox-wrap">
                                 <input type="checkbox" id="agree-adult" class="agree-required" data-term-key="adult">
-                                <span>미성년자 아님 동의 (필수)</span>
+                                <span>성인 본인 예약 확인 (필수)</span>
                             </label>
                             <button type="button" class="term-view-btn" data-term-key="adult"
                                 aria-haspopup="dialog">내용보기</button>
                         </div>
                     </div>
+                    <p class="terms-version">
+                        예약 진행 전 약관과 개인정보 처리방침 전문을 확인해 주세요.
+                        <a href="../../legal/preview/" target="_blank" rel="noopener">전체 운영 문안 보기</a>
+                    </p>
 
                 </section>
 

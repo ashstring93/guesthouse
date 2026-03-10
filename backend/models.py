@@ -87,3 +87,15 @@ class CancelPaymentRequest(BaseModel):
 
     order_id: str  # 취소할 주문번호
     cancel_reason: str = "고객 요청에 의한 취소"  # 취소 사유
+
+
+class AdminDateBlockRequest(BaseModel):
+    """관리자 수동 차단 일정 요청 모델.
+
+    관리자가 특정 날짜 또는 날짜 범위를 예약 불가 상태로 잠글 때 사용합니다.
+    end_date가 없으면 start_date 하루만 차단합니다.
+    """
+
+    start_date: str  # 차단 시작일 (YYYY-MM-DD)
+    end_date: str | None = None  # 차단 종료일 (YYYY-MM-DD)
+    reason: str = ""  # 차단 사유

@@ -100,16 +100,7 @@ ul {
 
 /* Decorative diamond in center */
 .section-divider::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 10px;
-    height: 10px;
-    transform: translate(-50%, -50%) rotate(45deg);
-    background: rgba(251, 247, 239, 0.95);
-    border: 1px solid rgba(31, 25, 20, 0.22);
-    box-shadow: 0 0 0 10px rgba(251, 247, 239, 0.55);
+    display: none;
 }
 
 section {
@@ -165,28 +156,22 @@ section[id] {
 .logo a {
     display: inline-flex;
     align-items: center;
-    gap: 12px;
+    gap: 0;
     color: #fff;
     text-shadow: 0 8px 26px rgba(0, 0, 0, 0.25);
     transition: color 0.4s ease, text-shadow 0.4s ease;
 }
 
 .logo-mark {
-    width: 44px;
-    height: 44px;
-    flex-shrink: 0;
-    border-radius: 50%;
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
-    transition: transform 0.35s ease, box-shadow 0.35s ease, width 0.35s ease, height 0.35s ease;
+    display: none;
 }
 
-.logo-text {
+.logo a::before {
+    content: "\BB3C\B808\BC29\C544\D558\C6B0\C2A4";
     font-family: var(--font-heading);
-    font-size: 2.1rem;
-    font-weight: 400;
-    letter-spacing: -0.02em;
-    color: currentColor;
-    transition: font-size 0.35s ease;
+    font-size: 1.34rem;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
 }
 
 .logo a:hover .logo-mark {
@@ -196,16 +181,6 @@ section[id] {
 #main-header.scrolled .logo a {
     color: var(--text-color);
     text-shadow: none;
-}
-
-#main-header.scrolled .logo-mark {
-    width: 38px;
-    height: 38px;
-    box-shadow: 0 6px 14px rgba(31, 25, 20, 0.12);
-}
-
-#main-header.scrolled .logo-text {
-    font-size: 1.65rem;
 }
 
 nav ul {

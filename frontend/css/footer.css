@@ -1,4 +1,3 @@
-
 /* Location Section */
 #location {
     padding: var(--section-padding) 0;
@@ -89,17 +88,10 @@ footer {
 }
 
 .footer-logo-mark {
-    width: 62px;
-    height: 62px;
+    width: 80px;
+    height: 80px;
     border-radius: 50%;
     box-shadow: 0 10px 24px rgba(0, 0, 0, 0.32);
-}
-
-.footer-logo-text {
-    font-family: var(--font-heading);
-    font-size: 2.2rem;
-    font-weight: 400;
-    color: rgba(251, 247, 239, 0.96);
 }
 
 .footer-info p {

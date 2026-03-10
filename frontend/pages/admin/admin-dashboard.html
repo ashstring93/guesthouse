@@ -2,6 +2,9 @@
 <html lang="ko">
 
 <head>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>관리자 대시보드 - 물레방아하우스</title>
@@ -180,6 +183,16 @@
             color: #3730a3;
         }
 
+        .badge.confirming {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .badge.failed {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
         /* 환불 정보 */
         .refund-info {
             font-size: 12px;
@@ -300,10 +313,143 @@
             color: #475569;
         }
 
+        .dashboard-stack {
+            display: grid;
+            gap: 24px;
+        }
+
+        .section-card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 1px 6px rgba(0, 0, 0, 0.04);
+        }
+
+        .section-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .section-head h2 {
+            font-size: 18px;
+            margin-bottom: 6px;
+        }
+
+        .section-head p {
+            color: #64748b;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .date-block-form {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 180px)) minmax(220px, 1fr) auto;
+            gap: 12px;
+            align-items: end;
+            margin-bottom: 12px;
+        }
+
+        .form-field {
+            display: grid;
+            gap: 6px;
+        }
+
+        .form-field span {
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .form-field input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .btn-primary-action {
+            padding: 11px 16px;
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .btn-primary-action:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-primary-action:disabled {
+            background: #93c5fd;
+            cursor: wait;
+        }
+
+        .section-message {
+            min-height: 20px;
+            margin-bottom: 10px;
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        .section-message.error {
+            color: #dc2626;
+        }
+
+        .section-message.success {
+            color: #059669;
+        }
+
+        .date-range-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .date-block-reason {
+            color: #475569;
+        }
+
+        .btn-delete-date {
+            padding: 6px 12px;
+            background: #fff;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-delete-date:hover {
+            background: #fef2f2;
+        }
+
         .loading {
             text-align: center;
             padding: 40px;
             color: #888;
+        }
+
+        @media (max-width: 860px) {
+            .date-block-form {
+                grid-template-columns: 1fr;
+            }
+
+            .section-head {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
@@ -325,28 +471,81 @@
     <!-- 대시보드 (인증 후 표시) -->
     <div id="dashboard-section" class="container" hidden>
         <div class="stats" id="stats-area"></div>
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>주문번호</th>
-                        <th>예약자</th>
-                        <th>연락처</th>
-                        <th>체크인</th>
-                        <th>숙박</th>
-                        <th>인원</th>
-                        <th>결제금액</th>
-                        <th>상태</th>
-                        <th>환불 정보</th>
-                        <th>관리</th>
-                    </tr>
-                </thead>
-                <tbody id="reservation-body">
-                    <tr>
-                        <td colspan="10" class="loading">로딩 중...</td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="dashboard-stack">
+            <section class="section-card">
+                <div class="section-head">
+                    <div>
+                        <h2>예약 차단 일정</h2>
+                        <p>관리자가 직접 막아 둔 날짜는 예약 달력과 결제 준비 단계에서 모두 예약 불가로 처리됩니다.</p>
+                    </div>
+                </div>
+                <form id="date-block-form" class="date-block-form">
+                    <label class="form-field" for="block-start-date">
+                        <span>시작일</span>
+                        <input type="date" id="block-start-date" required>
+                    </label>
+                    <label class="form-field" for="block-end-date">
+                        <span>종료일</span>
+                        <input type="date" id="block-end-date">
+                    </label>
+                    <label class="form-field" for="block-reason">
+                        <span>사유</span>
+                        <input type="text" id="block-reason" placeholder="예: 내부 점검, 개인 사용">
+                    </label>
+                    <button type="submit" id="date-block-submit" class="btn-primary-action">날짜 막기</button>
+                </form>
+                <p id="date-block-message" class="section-message" aria-live="polite"></p>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>차단 기간</th>
+                                <th>일수</th>
+                                <th>사유</th>
+                                <th>등록 시각</th>
+                                <th>관리</th>
+                            </tr>
+                        </thead>
+                        <tbody id="blocked-date-body">
+                            <tr>
+                                <td colspan="5" class="loading">로딩 중...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="section-card">
+                <div class="section-head">
+                    <div>
+                        <h2>예약 내역</h2>
+                        <p>결제 상태와 환불 가능 여부를 함께 확인할 수 있습니다.</p>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>주문번호</th>
+                                <th>예약자</th>
+                                <th>연락처</th>
+                                <th>체크인</th>
+                                <th>숙박</th>
+                                <th>인원</th>
+                                <th>결제금액</th>
+                                <th>상태</th>
+                                <th>환불 정보</th>
+                                <th>관리</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reservation-body">
+                            <tr>
+                                <td colspan="10" class="loading">로딩 중...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
         </div>
     </div>
 
@@ -392,6 +591,27 @@
             if (e.key === 'Enter') authenticate();
         });
 
+        async function loadDashboardData() {
+            const [reservationsRes, dateBlocksRes] = await Promise.all([
+                fetch(`${baseUrl}/api/admin/reservations?token=${encodeURIComponent(adminToken)}`),
+                fetch(`${baseUrl}/api/admin/date-blocks?token=${encodeURIComponent(adminToken)}`),
+            ]);
+
+            if (!reservationsRes.ok) {
+                throw new Error('예약 목록을 불러오지 못했습니다.');
+            }
+            if (!dateBlocksRes.ok) {
+                throw new Error('차단 일정을 불러오지 못했습니다.');
+            }
+
+            const reservationsData = await reservationsRes.json();
+            const dateBlocksData = await dateBlocksRes.json();
+            const dateBlocks = Array.isArray(dateBlocksData.date_blocks) ? dateBlocksData.date_blocks : [];
+
+            renderDashboard(reservationsData.reservations || [], dateBlocks);
+            renderDateBlocks(dateBlocks);
+        }
+
         async function authenticate() {
             const token = document.getElementById('token-input').value.trim();
             if (!token) return;
@@ -406,22 +626,105 @@
                 if (!res.ok) throw new Error('서버 오류');
 
                 adminToken = token;
+                document.getElementById('auth-error').hidden = true;
                 document.getElementById('auth-section').hidden = true;
                 document.getElementById('dashboard-section').hidden = false;
-                const data = await res.json();
-                renderDashboard(data.reservations);
+                await loadDashboardData();
             } catch (e) {
                 document.getElementById('auth-error').textContent = '인증 실패: ' + e.message;
                 document.getElementById('auth-error').hidden = false;
             }
         }
 
+        function createEmptyStateRow(colspan, message) {
+            const row = document.createElement('tr');
+            const cell = document.createElement('td');
+            cell.colSpan = colspan;
+            cell.className = 'loading';
+            cell.textContent = message;
+            row.appendChild(cell);
+            return row;
+        }
+
+        function createTextCell(value, options = {}) {
+            const cell = document.createElement('td');
+            const normalized = value === undefined || value === null || value === '' ? '-' : String(value);
+
+            if (options.className) {
+                cell.className = options.className;
+            }
+            if (options.style) {
+                Object.assign(cell.style, options.style);
+            }
+
+            cell.textContent = normalized;
+            return cell;
+        }
+
+        function formatCurrency(value) {
+            return `${Number(value || 0).toLocaleString()}원`;
+        }
+
+        function shortOrderId(id) {
+            if (!id) return '-';
+            return id.length > 16 ? id.slice(0, 8) + '…' + id.slice(-4) : id;
+        }
+
+        function createStatusBadge(status) {
+            const normalized = String(status || '').toLowerCase();
+            const badge = document.createElement('span');
+            const labels = {
+                paid: '결제완료',
+                pending: '대기',
+                cancelled: '취소',
+                mock_paid: '테스트결제',
+                confirming: '승인중',
+                failed: '실패',
+            };
+
+            badge.className = 'badge';
+            if (normalized) {
+                badge.classList.add(normalized);
+            }
+            badge.textContent = labels[normalized] || normalized || '알수없음';
+            return badge;
+        }
+
+        function createRefundNode(status, refund) {
+            const normalized = String(status || '').toLowerCase();
+            if (normalized !== 'paid') {
+                const placeholder = document.createElement('span');
+                placeholder.style.color = '#999';
+                placeholder.style.fontSize = '12px';
+                placeholder.textContent = '-';
+                return placeholder;
+            }
+
+            const refundRate = Number(refund.refund_rate || 0);
+            const refundAmount = Number(refund.refund_amount || 0);
+            const wrapper = document.createElement('div');
+            const rateLine = document.createElement('span');
+            const messageLine = document.createElement('span');
+            const tone = refundRate === 100 ? 'refund-full' : refundRate === 50 ? 'refund-half' : 'refund-none';
+
+            wrapper.className = 'refund-info';
+            rateLine.className = tone;
+            rateLine.textContent = `${refundRate}% (${formatCurrency(refundAmount)})`;
+            messageLine.style.color = '#888';
+            messageLine.textContent = refund.message || '';
+
+            wrapper.appendChild(rateLine);
+            wrapper.appendChild(document.createElement('br'));
+            wrapper.appendChild(messageLine);
+            return wrapper;
+        }
+
         // 대시보드 렌더링
-        function renderDashboard(reservations) {
-            // 통계
+        function renderDashboard(reservations, dateBlocks = []) {
             const total = reservations.length;
             const paid = reservations.filter(r => r.status === 'paid').length;
             const cancelled = reservations.filter(r => r.status === 'cancelled').length;
+            const blockedRanges = dateBlocks.length;
             const totalRevenue = reservations
                 .filter(r => r.status === 'paid')
                 .reduce((sum, r) => sum + (r.total_amount || 0), 0);
@@ -430,70 +733,243 @@
             <div class="stat-card"><div class="label">전체 예약</div><div class="value">${total}건</div></div>
             <div class="stat-card"><div class="label">결제 완료</div><div class="value" style="color:#059669">${paid}건</div></div>
             <div class="stat-card"><div class="label">취소</div><div class="value" style="color:#dc2626">${cancelled}건</div></div>
+            <div class="stat-card"><div class="label">차단 일정</div><div class="value" style="color:#1d4ed8">${blockedRanges}건</div></div>
             <div class="stat-card"><div class="label">결제 총액</div><div class="value">${totalRevenue.toLocaleString()}원</div></div>
         `;
 
-            // 테이블
             const tbody = document.getElementById('reservation-body');
+            tbody.replaceChildren();
+
             if (reservations.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="10" class="loading">예약 내역이 없습니다.</td></tr>';
+                tbody.appendChild(createEmptyStateRow(10, '예약 내역이 없습니다.'));
                 return;
             }
 
-            tbody.innerHTML = reservations.map(r => {
-                const refund = r.refund_info || {};
-                const statusBadge = getStatusBadge(r.status);
-                const refundHtml = getRefundHtml(r.status, refund);
-                const canCancel = r.status === 'paid' && refund.refund_rate > 0;
+            reservations.forEach((reservation) => {
+                const refund = reservation.refund_info || {};
+                const canCancel = reservation.status === 'paid' && Number(refund.refund_rate || 0) > 0;
+                const row = document.createElement('tr');
 
-                return `<tr>
-                <td style="font-family:monospace;font-size:11px">${shortOrderId(r.order_id)}</td>
-                <td>${r.customer_name || '-'}</td>
-                <td>${r.customer_phone || '-'}</td>
-                <td>${r.checkin_date || '-'}</td>
-                <td>${r.nights || 1}박</td>
-                <td>${r.adults || '-'}명</td>
-                <td style="font-weight:600">${(r.total_amount || 0).toLocaleString()}원</td>
-                <td>${statusBadge}</td>
-                <td>${refundHtml}</td>
-                <td>${canCancel
-                        ? `<button class="btn-cancel" onclick="openCancelModal('${r.order_id}', '${r.customer_name}', ${r.total_amount}, ${refund.refund_amount}, '${refund.message}')">취소</button>`
-                        : (r.status === 'paid' && refund.refund_rate === 0 ? '<span style="color:#999;font-size:12px">환불불가</span>' : '-')
-                    }</td>
-            </tr>`;
-            }).join('');
+                row.appendChild(createTextCell(shortOrderId(reservation.order_id), {
+                    style: { fontFamily: 'monospace', fontSize: '11px' },
+                }));
+                row.appendChild(createTextCell(reservation.customer_name || '-'));
+                row.appendChild(createTextCell(reservation.customer_phone || '-'));
+                row.appendChild(createTextCell(reservation.checkin_date || '-'));
+                row.appendChild(createTextCell(`${reservation.nights || 1}박`));
+                row.appendChild(createTextCell(`${reservation.adults || '-'}명`));
+                row.appendChild(createTextCell(formatCurrency(reservation.total_amount), {
+                    style: { fontWeight: '600' },
+                }));
+
+                const statusCell = document.createElement('td');
+                statusCell.appendChild(createStatusBadge(reservation.status));
+                row.appendChild(statusCell);
+
+                const refundCell = document.createElement('td');
+                refundCell.appendChild(createRefundNode(reservation.status, refund));
+                row.appendChild(refundCell);
+
+                const actionCell = document.createElement('td');
+                if (canCancel) {
+                    const cancelButton = document.createElement('button');
+                    cancelButton.type = 'button';
+                    cancelButton.className = 'btn-cancel';
+                    cancelButton.textContent = '취소';
+                    cancelButton.addEventListener('click', () => {
+                        openCancelModal({
+                            orderId: reservation.order_id,
+                            name: reservation.customer_name || '-',
+                            total: Number(reservation.total_amount || 0),
+                            refundAmount: Number(refund.refund_amount || 0),
+                            message: refund.message || '',
+                        });
+                    });
+                    actionCell.appendChild(cancelButton);
+                } else if (reservation.status === 'paid' && Number(refund.refund_rate || 0) === 0) {
+                    actionCell.style.color = '#999';
+                    actionCell.style.fontSize = '12px';
+                    actionCell.textContent = '환불불가';
+                } else {
+                    actionCell.textContent = '-';
+                }
+                row.appendChild(actionCell);
+
+                tbody.appendChild(row);
+            });
         }
 
-        function shortOrderId(id) {
-            if (!id) return '-';
-            return id.length > 16 ? id.slice(0, 8) + '…' + id.slice(-4) : id;
+        function formatDateRange(startDate, endDate) {
+            if (!startDate) return '-';
+            if (!endDate || startDate === endDate) return startDate;
+            return `${startDate} ~ ${endDate}`;
         }
 
-        function getStatusBadge(status) {
-            const map = {
-                paid: '<span class="badge paid">결제완료</span>',
-                pending: '<span class="badge pending">대기</span>',
-                cancelled: '<span class="badge cancelled">취소</span>',
-                mock_paid: '<span class="badge mock_paid">테스트결제</span>',
-            };
-            return map[status] || `<span class="badge">${status || '알수없음'}</span>`;
+        function getInclusiveDays(startDate, endDate) {
+            if (!startDate || !endDate) return 1;
+            const start = new Date(`${startDate}T00:00:00`);
+            const end = new Date(`${endDate}T00:00:00`);
+            if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 1;
+            return Math.max(1, Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1);
         }
 
-        function getRefundHtml(status, refund) {
-            if (status !== 'paid') return '<span style="color:#999;font-size:12px">-</span>';
-            const cls = refund.refund_rate === 100 ? 'refund-full' : refund.refund_rate === 50 ? 'refund-half' : 'refund-none';
-            return `<div class="refund-info">
-            <span class="${cls}">${refund.refund_rate}% (${(refund.refund_amount || 0).toLocaleString()}원)</span><br>
-            <span style="color:#888">${refund.message || ''}</span>
-        </div>`;
+        function formatDateTime(value) {
+            if (!value) return '-';
+            const parsed = new Date(String(value).replace(' ', 'T'));
+            if (Number.isNaN(parsed.getTime())) return String(value);
+            return new Intl.DateTimeFormat('ko-KR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+            }).format(parsed);
+        }
+
+        function setDateBlockMessage(text, type = '') {
+            const messageEl = document.getElementById('date-block-message');
+            if (!messageEl) return;
+            messageEl.textContent = text || '';
+            messageEl.classList.remove('error', 'success');
+            if (type) {
+                messageEl.classList.add(type);
+            }
+        }
+
+        function renderDateBlocks(dateBlocks) {
+            const tbody = document.getElementById('blocked-date-body');
+            if (!tbody) return;
+
+            tbody.replaceChildren();
+
+            if (!dateBlocks.length) {
+                tbody.appendChild(createEmptyStateRow(5, '등록된 차단 일정이 없습니다.'));
+                return;
+            }
+
+            dateBlocks.forEach((block) => {
+                const row = document.createElement('tr');
+                const rangeCell = document.createElement('td');
+                const rangeBadge = document.createElement('span');
+                const actionCell = document.createElement('td');
+                const deleteButton = document.createElement('button');
+
+                rangeBadge.className = 'date-range-badge';
+                rangeBadge.textContent = formatDateRange(block.start_date, block.end_date);
+                rangeCell.appendChild(rangeBadge);
+
+                row.appendChild(rangeCell);
+                row.appendChild(createTextCell(`${getInclusiveDays(block.start_date, block.end_date)}일`));
+                row.appendChild(createTextCell(block.reason || '-', { className: 'date-block-reason' }));
+                row.appendChild(createTextCell(formatDateTime(block.created_at)));
+
+                deleteButton.type = 'button';
+                deleteButton.className = 'btn-delete-date';
+                deleteButton.textContent = '삭제';
+                deleteButton.addEventListener('click', () => deleteDateBlock(block.id));
+                actionCell.appendChild(deleteButton);
+                row.appendChild(actionCell);
+
+                tbody.appendChild(row);
+            });
+        }
+
+        async function createDateBlock(event) {
+            event.preventDefault();
+            if (!adminToken) return;
+
+            const startDateInput = document.getElementById('block-start-date');
+            const endDateInput = document.getElementById('block-end-date');
+            const reasonInput = document.getElementById('block-reason');
+            const submitBtn = document.getElementById('date-block-submit');
+
+            const startDate = startDateInput.value;
+            const endDate = endDateInput.value || startDate;
+            const reason = reasonInput.value.trim();
+
+            if (!startDate) {
+                setDateBlockMessage('차단 시작일을 선택해 주세요.', 'error');
+                startDateInput.focus();
+                return;
+            }
+
+            if (endDate < startDate) {
+                setDateBlockMessage('종료일은 시작일 이후 또는 같은 날짜여야 합니다.', 'error');
+                endDateInput.focus();
+                return;
+            }
+
+            submitBtn.disabled = true;
+            setDateBlockMessage('차단 일정을 저장하는 중입니다.');
+
+            try {
+                const res = await fetch(`${baseUrl}/api/admin/date-blocks?token=${encodeURIComponent(adminToken)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        start_date: startDate,
+                        end_date: endDate,
+                        reason,
+                    }),
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.detail || '차단 일정 저장에 실패했습니다.');
+                }
+
+                document.getElementById('date-block-form').reset();
+                setDateBlockMessage('차단 일정을 저장했습니다.', 'success');
+                await loadDashboardData();
+            } catch (e) {
+                setDateBlockMessage(e.message || '차단 일정 저장 중 오류가 발생했습니다.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+            }
+        }
+
+        async function deleteDateBlock(blockId) {
+            if (!adminToken || !blockId) return;
+            if (!confirm('이 차단 일정을 삭제하시겠습니까?')) return;
+
+            setDateBlockMessage('차단 일정을 삭제하는 중입니다.');
+
+            try {
+                const res = await fetch(`${baseUrl}/api/admin/date-blocks/${blockId}?token=${encodeURIComponent(adminToken)}`, {
+                    method: 'DELETE',
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.detail || '차단 일정 삭제에 실패했습니다.');
+                }
+
+                setDateBlockMessage('차단 일정을 삭제했습니다.', 'success');
+                await loadDashboardData();
+            } catch (e) {
+                setDateBlockMessage(e.message || '차단 일정 삭제 중 오류가 발생했습니다.', 'error');
+            }
         }
 
         // 취소 모달
-        function openCancelModal(orderId, name, total, refundAmount, message) {
+        function openCancelModal({ orderId, name, total, refundAmount, message }) {
             currentOrderId = orderId;
-            document.getElementById('cancel-modal-info').innerHTML =
-                `<strong>${name}</strong> 님의 예약을 취소합니다.<br>결제 금액: ${total.toLocaleString()}원<br>${message}`;
-            document.getElementById('cancel-modal-amount').textContent = `환불 금액: ${refundAmount.toLocaleString()}원`;
+
+            const infoEl = document.getElementById('cancel-modal-info');
+            const nameEl = document.createElement('strong');
+            nameEl.textContent = name || '-';
+
+            infoEl.replaceChildren();
+            infoEl.appendChild(nameEl);
+            infoEl.appendChild(document.createTextNode(' 님의 예약을 취소합니다.'));
+            infoEl.appendChild(document.createElement('br'));
+            infoEl.appendChild(document.createTextNode(`결제 금액: ${formatCurrency(total)}`));
+            if (message) {
+                infoEl.appendChild(document.createElement('br'));
+                infoEl.appendChild(document.createTextNode(String(message)));
+            }
+
+            document.getElementById('cancel-modal-amount').textContent = `환불 금액: ${formatCurrency(refundAmount)}`;
             document.getElementById('cancel-modal').classList.add('show');
         }
 
@@ -520,10 +996,7 @@
                 if (res.ok && data.success) {
                     alert(`✅ ${data.message}`);
                     closeModal();
-                    // 새로고침
-                    const listRes = await fetch(`${baseUrl}/api/admin/reservations?token=${encodeURIComponent(adminToken)}`);
-                    const listData = await listRes.json();
-                    renderDashboard(listData.reservations);
+                    await loadDashboardData();
                 } else {
                     alert(`❌ 취소 실패: ${data.detail || data.message || '알 수 없는 오류'}`);
                 }
@@ -534,6 +1007,8 @@
                 btn.textContent = '취소 진행';
             }
         }
+
+        document.getElementById('date-block-form').addEventListener('submit', createDateBlock);
     </script>
 </body>
 

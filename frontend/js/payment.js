@@ -51,7 +51,7 @@
 
 
     const MAX_GUESTS = 8;
-    const TERMS_VERSION = "2026-02-24-v1";
+    const TERMS_VERSION = "2026-03-09-v1";
     const GUEST_GROUPS = ["adults"];
     const BASE_GUESTS = 2;
     const ADULT_EXTRA_FEE = 20000;
@@ -72,6 +72,14 @@
         return path.endsWith("/") ? path.slice(0, -1) : path;
     };
     const apiUrl = (suffix) => `${getAppBasePath()}${suffix}`;
+    const TERM_PREVIEW_ANCHORS = {
+        policy: "#policy",
+        privacy: "#collection-consent",
+        thirdparty: "#thirdparty-consent",
+        adult: "#adult-notice",
+    };
+    const getLegalPreviewUrl = (termKey = "") =>
+        `${getAppBasePath()}/legal/preview/${TERM_PREVIEW_ANCHORS[termKey] || ""}`;
 
     const guestState = {
         adults: 2,
@@ -156,48 +164,96 @@
 
     const TERM_DETAILS = {
         policy: {
-            title: "유의사항/환불규정 동의",
+            title: "숙소 이용 및 환불규정 동의",
             version: TERMS_VERSION,
-            effectiveDate: "2026-02-24",
-            lines: [
-                "체크인 15:00 이후, 체크아웃 오전 11:00입니다.",
-                "체크인 7일 전까지 취소 시 100% 환불됩니다.",
-                "체크인 6일~3일 전 취소 시 50% 환불, 2일 이내 취소는 환불이 어렵습니다.",
-                "천재지변 및 불가항력 상황은 별도 환불 정책이 적용될 수 있습니다.",
-                "숙소 비품 훼손/분실 시 실제 비용이 청구될 수 있습니다.",
-            ],
+            effectiveDate: "2026-03-09",
+            html: `
+                <div class="terms-modal-section">
+                    <h4>숙소 이용 기본 정보</h4>
+                    <ul class="terms-modal-list">
+                        <li>체크인은 오후 3시 이후, 체크아웃은 오전 11시까지입니다.</li>
+                        <li>기준 인원은 2인, 최대 숙박 가능 인원은 8인입니다.</li>
+                        <li>기준 인원 초과 시 1인당 1박 20,000원의 추가 요금이 부과됩니다.</li>
+                        <li>바비큐 이용 시 20,000원의 추가 요금이 발생합니다.</li>
+                        <li>대문 열쇠와 현관 비밀번호는 입실 전날에 별도로 공지합니다.</li>
+                    </ul>
+                </div>
+                <div class="terms-modal-section">
+                    <h4>취소·환불 기준</h4>
+                    <ul class="terms-modal-list">
+                        <li>체크인 7일 전까지 취소하면 결제금액의 100%를 환불합니다.</li>
+                        <li>체크인 6일 전부터 3일 전까지 취소하면 결제금액의 50%를 환불합니다.</li>
+                        <li>체크인 2일 전부터 당일까지의 취소 및 노쇼는 환불이 어렵습니다.</li>
+                    </ul>
+                </div>
+                <p class="terms-modal-note">
+                    현재 문안은 시스템 연동 기준에 맞춘 검토용 초안입니다. 성수기/비수기 운영정책과 숙박업 소비자분쟁해결기준 검토 후 확정하는 것을 권장합니다.
+                </p>
+            `,
         },
         privacy: {
             title: "개인정보 수집 및 이용동의",
             version: TERMS_VERSION,
-            effectiveDate: "2026-02-24",
-            lines: [
-                "수집 항목: 예약자명, 연락처, 체크인 정보, 결제 관련 확인정보.",
-                "수집 목적: 예약 확인, 결제 처리, 고객 문의 대응.",
-                "보유 기간: 관계 법령에서 정한 기간까지 보관 후 파기.",
-                "동의 거부 시 예약 진행이 제한될 수 있습니다.",
-            ],
+            effectiveDate: "2026-03-09",
+            html: `
+                <div class="terms-modal-section">
+                    <h4>수집 항목</h4>
+                    <ul class="terms-modal-list">
+                        <li>예약자명, 연락처, 체크인 날짜, 숙박일수, 숙박 인원, 결제 관련 확인 정보</li>
+                        <li>선택 입력 시 도착 예정 시간, 요청사항, 바비큐/반려동물 관련 정보</li>
+                    </ul>
+                </div>
+                <div class="terms-modal-section">
+                    <h4>이용 목적</h4>
+                    <ul class="terms-modal-list">
+                        <li>예약 확인, 숙박 서비스 제공, 문의 응대</li>
+                        <li>결제 처리, 환불 처리, 거래기록 보존</li>
+                    </ul>
+                </div>
+                <div class="terms-modal-section">
+                    <h4>보유 기간 및 거부권</h4>
+                    <ul class="terms-modal-list">
+                        <li>관련 법령에서 정한 기간까지 보관 후 파기합니다.</li>
+                        <li>필수 정보 수집에 동의하지 않으면 예약 및 결제 진행이 제한될 수 있습니다.</li>
+                    </ul>
+                </div>
+            `,
         },
         thirdparty: {
-            title: "개인정보 제3자 제공동의",
+            title: "결제 처리 관련 개인정보 제공 동의",
             version: TERMS_VERSION,
-            effectiveDate: "2026-02-24",
-            lines: [
-                "제공 대상: 결제대행사(PG), 간편결제 사업자.",
-                "제공 항목: 예약자명, 연락처, 주문번호, 결제금액.",
-                "제공 목적: 결제 승인/정산, 환불 처리, 부정거래 방지.",
-                "보유 기간: 관련 법령 및 계약에서 정한 기간.",
-            ],
+            effectiveDate: "2026-03-09",
+            html: `
+                <div class="terms-modal-section">
+                    <h4>제공받는 자</h4>
+                    <p>토스페이먼츠(주), 카드사, 은행, 간편결제 사업자 등 고객이 선택한 결제수단 관련 사업자</p>
+                </div>
+                <div class="terms-modal-section">
+                    <h4>제공 항목 및 목적</h4>
+                    <ul class="terms-modal-list">
+                        <li>제공 항목: 예약자명, 연락처, 주문번호, 결제금액, 결제 승인에 필요한 정보</li>
+                        <li>제공 목적: 결제 승인, 정산, 환불 처리, 부정거래 방지</li>
+                    </ul>
+                </div>
+                <p class="terms-modal-note">
+                    실제 운영 시에는 제3자 제공 동의가 필요한 구조인지, 처리위탁 고지로 정리할 사안인지 결제 연동 문서와 함께 최종 확인이 필요합니다.
+                </p>
+            `,
         },
         adult: {
-            title: "미성년자 아님 동의",
+            title: "성인 본인 예약 확인",
             version: TERMS_VERSION,
-            effectiveDate: "2026-02-24",
-            lines: [
-                "예약자는 미성년자가 아니며 본인 명의로 예약/결제를 진행합니다.",
-                "미성년자 단독 예약이 확인될 경우 예약이 취소될 수 있습니다.",
-                "허위 정보 입력으로 발생한 문제의 책임은 예약자에게 있습니다.",
-            ],
+            effectiveDate: "2026-03-09",
+            html: `
+                <div class="terms-modal-section">
+                    <h4>확인 사항</h4>
+                    <ul class="terms-modal-list">
+                        <li>예약자는 만 19세 이상 성인이며, 본인 명의로 예약 및 결제를 진행합니다.</li>
+                        <li>미성년자가 법정대리인 동의 없이 예약한 사실이 확인되는 경우 예약이 취소되거나 추가 확인이 요청될 수 있습니다.</li>
+                        <li>허위 정보 입력으로 발생한 책임은 예약자에게 있습니다.</li>
+                    </ul>
+                </div>
+            `,
         },
     };
 
@@ -398,10 +454,11 @@
         if (!detail) return;
 
         termsModalTitle.textContent = detail.title;
-        termsModalMeta.textContent = `시행일 ${detail.effectiveDate}`;
-        termsModalBody.innerHTML = detail.lines
-            .map((line, index) => `<p>${index + 1}. ${escapeHtml(line)}</p>`)
-            .join("");
+        termsModalMeta.innerHTML = `
+            <span>정책 버전 ${escapeHtml(detail.version)} · 기준일 ${escapeHtml(detail.effectiveDate)}</span>
+            <a href="${escapeHtml(getLegalPreviewUrl(termKey))}" target="_blank" rel="noopener">전체 운영 문안 보기</a>
+        `;
+        termsModalBody.innerHTML = detail.html;
 
         termsModal.hidden = false;
         document.body.classList.add("modal-open");
