@@ -90,23 +90,15 @@
     let restoreCheckinFocusOnClose = false;
     let suppressCheckinFocusOpen = false;
 
-    // ── 토스페이먼츠 V2 결제위젯 상태 ──
     let tossWidgets = null;
     let isTossInitializing = false;
 
-    /**
-     * 토스 결제위젯 초기화 및 금액 업데이트.
-     * 최초 호출 시 SDK 초기화 + 위젯 렌더링, 이후 호출 시 금액만 업데이트.
-     * @param {number} totalAmount - 결제 총액 (KRW)
-     */
     const initOrUpdateTossWidgets = async (totalAmount) => {
-        // SDK가 로드되지 않은 경우 무시
         if (typeof TossPayments === 'undefined') {
             console.warn('TossPayments SDK가 로드되지 않았습니다.');
             return;
         }
 
-        // 이미 초기화된 경우 금액만 업데이트
         if (tossWidgets) {
             try {
                 await tossWidgets.setAmount({ currency: 'KRW', value: totalAmount });
@@ -116,39 +108,33 @@
             return;
         }
 
-        // 중복 초기화 방지
         if (isTossInitializing) return;
         isTossInitializing = true;
 
         try {
-            // 1. 백엔드에서 결제위젯 연동 클라이언트 키 조회
             const configRes = await fetch(apiUrl('/api/payment/config'));
             const configData = await configRes.json();
             const clientKey = configData.client_key;
+            const paymentMethodVariantKey = configData.payment_method_variant_key || 'DEFAULT';
 
             if (!clientKey) {
                 console.warn('결제위젯 연동 키가 설정되지 않았습니다.');
                 return;
             }
 
-            // 2. SDK 초기화 (결제위젯 연동 키 사용)
             const tossPayments = TossPayments(clientKey);
 
-            // 3. 위젯 인스턴스 생성 (비회원 결제 = ANONYMOUS)
             const widgets = tossPayments.widgets({
                 customerKey: TossPayments.ANONYMOUS,
             });
 
-            // 4. 결제 금액 설정 (renderPaymentMethods 전에 반드시 호출)
             await widgets.setAmount({ currency: 'KRW', value: totalAmount });
 
-            // 5. 결제 UI 렌더링
             await widgets.renderPaymentMethods({
                 selector: '#payment-method',
-                variantKey: 'DEFAULT',
+                variantKey: paymentMethodVariantKey,
             });
 
-            // 6. 약관 UI 렌더링
             await widgets.renderAgreement({
                 selector: '#agreement',
                 variantKey: 'AGREEMENT',
@@ -395,7 +381,6 @@
 
     const normalizePhone = (value) => String(value || "").replace(/[^0-9]/g, "");
 
-
     const getGuestTotal = () => guestState.adults;
 
     const getGroupInputs = (group) =>
@@ -520,8 +505,6 @@
         const extraInfo = calculateExtraByGroup(
             nights,
             guestState.adults,
-            0,
-            0,
             safeQuote
         );
         const totalAmount = roomAmount + extraInfo.extraAmount + extraInfo.bbqAmount;
@@ -549,7 +532,6 @@
             panelTotalGuestsEl.textContent = `${total}명`;
         }
 
-        // 토스 결제위젯 금액 동기화 (초기화 또는 업데이트)
         initOrUpdateTossWidgets(totalAmount);
     };
 
@@ -685,7 +667,6 @@
         setStatus("주문 정보를 생성하는 중입니다.");
 
         try {
-            // 1. 백엔드에 주문 생성 요청 → order_id, amount 반환
             const response = await fetch(apiUrl("/api/payment/prepare"), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -698,18 +679,19 @@
 
             setStatus("결제창을 여는 중입니다...", "success");
 
-            // 2. 토스 결제위젯 결제 요청 (Redirect 방식)
+            const failUrl = new URL(apiUrl("/reservation/fail"), window.location.origin);
+            failUrl.searchParams.set("pendingOrderId", data.order_id);
+
             await tossWidgets.requestPayment({
                 orderId: data.order_id,
                 orderName: `물레방아하우스 숙박 예약 (${payload.nights}박)`,
                 successUrl: window.location.origin + apiUrl("/reservation/success"),
-                failUrl: window.location.origin + apiUrl("/reservation/fail"),
+                failUrl: failUrl.toString(),
                 customerName: payload.customer_name,
                 customerMobilePhone: normalizePhone(payload.customer_phone),
             });
 
         } catch (error) {
-            // 사용자가 결제창을 닫은 경우 등
             setStatus(error.message || "결제 준비 중 오류가 발생했습니다.", "error");
             if (paySubmitBtn) paySubmitBtn.disabled = false;
         }
@@ -788,7 +770,6 @@
         const previous = guestState[group];
         const selectedValue = Number(input.value);
 
-        // Keep one selection per group even with checkbox UI.
         if (!input.checked) {
             setGroupSelection(group, previous);
             return;
@@ -817,7 +798,6 @@
     requiredAgreeInputs.forEach((input) => {
         input.addEventListener("change", syncAgreeAll);
     });
-
 
     guestCountInputs.forEach((input) => {
         input.addEventListener("change", onGuestCountChanged);

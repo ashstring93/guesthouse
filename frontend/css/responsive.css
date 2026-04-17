@@ -75,18 +75,6 @@
         font-size: 0.88rem;
     }
 
-    /* Rooms */
-    .room-grid {
-        grid-template-columns: 1fr;
-        /* Single column on mobile */
-        grid-auto-rows: 250px;
-    }
-
-    .room-item:nth-child(n) {
-        grid-column: span 1;
-        grid-row: span 1;
-    }
-
     /* Reservation */
     .reservation-grid {
         grid-template-columns: 1fr;

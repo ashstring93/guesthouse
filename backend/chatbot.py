@@ -34,8 +34,6 @@ def _build_system_instruction(knowledge_text: str) -> str:
 
 
 class GuestHouseChatbot:
-    """Stateful chatbot wrapper with per-session chat history."""
-
     def __init__(self, api_key: str, model: str = DEFAULT_MODEL):
         if not api_key:
             raise ValueError("api_key is required")

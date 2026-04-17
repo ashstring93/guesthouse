@@ -1,18 +1,6 @@
-"""
-결제 관련 라우터.
-
-요금 견적, 토스 결제 설정, 주문 준비, 결제 성공/실패 콜백을 처리합니다.
-
-엔드포인트:
-    POST /api/payment/quote    → 요금 견적
-    GET  /api/payment/config   → 토스 클라이언트 키 제공
-    POST /api/payment/prepare  → 주문 생성 및 결제 준비
-    GET  /reservation/success  → 결제 성공 콜백 (토스 → 서버)
-    GET  /reservation/fail     → 결제 실패/취소 콜백
-"""
+"""결제 API."""
 
 import json
-import os
 from datetime import date, datetime, timedelta
 from html import escape
 
@@ -21,33 +9,142 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 
 from config import (
+    ADULT_EXTRA_FEE,
     BBQ_FEE,
+    BASE_WEEKDAY_RATE,
+    BASE_WEEKEND_RATE,
     MAX_GUESTS,
     TERMS_VERSION,
     TOSSPAYMENTS_API_BASE,
+    TOSSPAYMENTS_PAYMENT_METHOD_VARIANT_KEY,
     TOSSPAYMENTS_SECRET_KEY,
+    TOSSPAYMENTS_WIDGET_CLIENT_KEY,
 )
 from database import (
     get_db,
     get_stay_unavailable_date_strings,
-    save_payment_intent,
-    save_payment_term_consents,
+    save_payment_order,
 )
 from models import PaymentPrepareRequest, PaymentQuoteRequest
 from utils import (
     calculate_extra_guest_details,
     calculate_room_amount,
     create_order_id,
+    load_json_object,
     parse_date_or_400,
     toss_auth_header,
 )
 
 router = APIRouter(tags=["payment"])
 FINAL_BOOKED_STATUSES = ("confirming", "confirmed", "paid")
+MAX_NIGHTS = 5
+BOOKING_PAGE_PATH = "/reservation/book/"
+CHECK_PAGE_PATH = "/reservation/check/"
+VIRTUAL_ACCOUNT_METHODS = {"가상계좌", "VIRTUAL_ACCOUNT"}
+
+
+def _normalize_nights(value: int) -> int:
+    return max(1, min(int(value or 1), MAX_NIGHTS))
+
+
+def _normalize_adults(value: int) -> int:
+    return max(0, int(value or 0))
+
+
+def _validate_guest_count(adults: int):
+    if adults <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="인원은 최소 1명 이상이어야 합니다.",
+        )
+    if adults > MAX_GUESTS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"인원은 최대 {MAX_GUESTS}명까지 예약할 수 있습니다.",
+        )
+
+
+def _build_quote(checkin: date, nights: int, adults: int, bbq: bool) -> dict:
+    room_amount = calculate_room_amount(checkin, nights)
+    extra_detail = calculate_extra_guest_details(adults, nights)
+    bbq_amount = BBQ_FEE if bbq else 0
+    total_amount = room_amount + extra_detail["extra_amount"] + bbq_amount
+
+    return {
+        "checkin_date": checkin.isoformat(),
+        "nights": nights,
+        "adults": adults,
+        "total_guests": adults,
+        "extra_guests": extra_detail["extra_guests"],
+        "room_amount": room_amount,
+        "extra_amount": extra_detail["extra_amount"],
+        "bbq_amount": bbq_amount,
+        "total_amount": total_amount,
+        "currency": "KRW",
+        "base_weekday_rate": BASE_WEEKDAY_RATE,
+        "base_weekend_rate": BASE_WEEKEND_RATE,
+        "adult_extra_fee": ADULT_EXTRA_FEE,
+        "bbq_fee": BBQ_FEE,
+    }
+
+
+def _required_consents(request: PaymentPrepareRequest) -> dict[str, bool]:
+    return {
+        "policy": request.agree_policy,
+        "privacy": request.agree_privacy,
+        "thirdparty": request.agree_thirdparty,
+        "adult": request.agree_adult,
+    }
+
+
+def _parse_json_response(resp: httpx.Response) -> dict:
+    if not resp.headers.get("content-type", "").startswith("application/json"):
+        return {}
+    try:
+        payload = resp.json()
+    except ValueError:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _is_virtual_account_payment(payment_data: dict) -> bool:
+    method = str(payment_data.get("method") or "").strip()
+    return method in VIRTUAL_ACCOUNT_METHODS or bool(payment_data.get("virtualAccount"))
+
+
+def _toss_headers(idempotency_key: str | None = None) -> dict[str, str]:
+    headers = {
+        "Authorization": toss_auth_header(),
+        "Content-Type": "application/json",
+    }
+    if idempotency_key:
+        headers["Idempotency-Key"] = idempotency_key
+    return headers
+
+
+async def _cancel_toss_payment(
+    client: httpx.AsyncClient,
+    payment_key: str,
+    cancel_reason: str,
+    idempotency_key: str,
+) -> dict:
+    resp = await client.post(
+        f"{TOSSPAYMENTS_API_BASE}/v1/payments/{payment_key}/cancel",
+        json={"cancelReason": cancel_reason},
+        headers=_toss_headers(idempotency_key),
+    )
+    if resp.status_code == 200:
+        return resp.json()
+
+    error_data = _parse_json_response(resp)
+    return {
+        "cancel_failed": True,
+        "status_code": resp.status_code,
+        "error": error_data or {"message": resp.text},
+    }
 
 
 def _ensure_stay_is_available(checkin, nights: int):
-    """이미 예약되었거나 운영상 차단된 날짜가 포함되면 400 에러를 발생시킵니다."""
     conflict_dates = get_stay_unavailable_date_strings(checkin, nights)
     if not conflict_dates:
         return
@@ -70,18 +167,6 @@ def _reservations_overlap(
     start_a: date, end_a: date, start_b: date, end_b: date
 ) -> bool:
     return start_a <= end_b and start_b <= end_a
-
-
-def _load_payload_object(raw_payload) -> dict:
-    if not raw_payload:
-        return {}
-
-    try:
-        decoded = json.loads(raw_payload)
-    except (TypeError, json.JSONDecodeError):
-        return {}
-
-    return decoded if isinstance(decoded, dict) else {}
 
 
 def _build_redirect_payload(order_id: str, payment_key: str, amount: int) -> dict:
@@ -118,7 +203,7 @@ def _store_payment_redirect_params(
         if not row:
             return None
 
-        payload = _load_payload_object(row["payload"])
+        payload = load_json_object(row["payload"])
         payload.update(redirect_payload)
         conn.execute(
             """
@@ -149,7 +234,7 @@ def _update_payment_intent_status(
                     "SELECT payload FROM payment_intents WHERE order_id = ?",
                     (order_id,),
                 ).fetchone()
-                merged_payload = _load_payload_object(row["payload"] if row else None)
+                merged_payload = load_json_object(row["payload"] if row else None)
                 merged_payload.update(payload)
                 serialized_payload = json.dumps(merged_payload, ensure_ascii=False)
 
@@ -322,7 +407,7 @@ def _render_payment_error_page(
     *,
     detail: str = "",
     status_code: int = 400,
-    action_href: str = "/reservation/book.html",
+    action_href: str = BOOKING_PAGE_PATH,
     action_text: str = "다시 예약하기",
 ) -> HTMLResponse:
     safe_title = escape(title)
@@ -371,88 +456,28 @@ def _render_payment_error_page(
     )
 
 
-# ── 요금 견적 ──
-
-
 @router.post("/api/payment/quote")
 async def payment_quote(request: PaymentQuoteRequest):
-    """예약 요금 견적.
-
-    체크인 날짜, 숙박 일수, 인원, 옵션을 기반으로
-    객실 기본 요금 + 추가 인원 요금 + BBQ 요금을 합산합니다.
-    """
     checkin = parse_date_or_400(request.checkin_date)
-    nights = max(1, min(request.nights, 5))
-    adults = max(0, request.adults)
-
-    if adults <= 0:
-        raise HTTPException(
-            status_code=400, detail="인원은 최소 1명 이상이어야 합니다."
-        )
-    if adults > MAX_GUESTS:
-        raise HTTPException(
-            status_code=400,
-            detail=f"인원은 최대 {MAX_GUESTS}명까지 예약할 수 있습니다.",
-        )
-
+    nights = _normalize_nights(request.nights)
+    adults = _normalize_adults(request.adults)
+    _validate_guest_count(adults)
     _ensure_stay_is_available(checkin, nights)
 
-    room_amount = calculate_room_amount(checkin, nights)
-    extra_detail = calculate_extra_guest_details(adults, nights)
-    bbq_amount = BBQ_FEE if bool(request.bbq) else 0
-    total_amount = room_amount + extra_detail["extra_amount"] + bbq_amount
-
-    return {
-        "checkin_date": checkin.isoformat(),
-        "nights": nights,
-        "adults": adults,
-        "total_guests": adults,
-        "extra_guests": extra_detail["extra_guests"],
-        "room_amount": room_amount,
-        "extra_amount": extra_detail["extra_amount"],
-        "bbq_amount": bbq_amount,
-        "total_amount": total_amount,
-        "currency": "KRW",
-        "base_weekday_rate": int(os.getenv("BASE_WEEKDAY_RATE", "150000")),
-        "base_weekend_rate": int(os.getenv("BASE_WEEKEND_RATE", "200000")),
-        "adult_extra_fee": int(os.getenv("ADULT_EXTRA_FEE", "20000")),
-        "bbq_fee": BBQ_FEE,
-    }
-
-
-# ── 토스 결제 설정 ──
+    return _build_quote(checkin, nights, adults, bool(request.bbq))
 
 
 @router.get("/api/payment/config")
 async def payment_config():
-    """프론트엔드에 Toss Payments 클라이언트 키를 제공합니다.
-
-    프론트엔드의 결제 위젯 초기화에 필요한 공개 키만 반환합니다.
-    시크릿 키는 절대 노출하지 않습니다.
-    """
-    return {"client_key": os.getenv("TOSSPAYMENTS_WIDGET_CLIENT_KEY", "")}
-
-
-# ── 주문 생성 ──
+    return {
+        "client_key": TOSSPAYMENTS_WIDGET_CLIENT_KEY,
+        "payment_method_variant_key": TOSSPAYMENTS_PAYMENT_METHOD_VARIANT_KEY,
+    }
 
 
 @router.post("/api/payment/prepare")
 async def payment_prepare(request: PaymentPrepareRequest, http_request: Request):
-    """주문 생성 및 결제 준비.
-
-    1. 약관 동의 검증
-    2. 요금 계산 (quote와 동일 로직)
-    3. DB에 결제 의도(payment_intent) 저장
-    4. 약관 동의 기록 저장
-    5. 주문번호 + 금액 반환 → 프론트엔드가 토스 결제위젯 호출
-    """
-    # 필수 약관 동의 확인
-    required_consents = {
-        "policy": request.agree_policy,
-        "privacy": request.agree_privacy,
-        "thirdparty": request.agree_thirdparty,
-        "adult": request.agree_adult,
-    }
+    required_consents = _required_consents(request)
     if not request.agreed_to_terms or not all(required_consents.values()):
         raise HTTPException(status_code=400, detail="필수 약관 동의가 필요합니다.")
 
@@ -460,29 +485,14 @@ async def payment_prepare(request: PaymentPrepareRequest, http_request: Request)
     client_ip = http_request.client.host if http_request.client else None
     user_agent = http_request.headers.get("user-agent", "")
 
-    # 요금 계산
     checkin = parse_date_or_400(request.checkin_date)
-    nights = max(1, min(request.nights, 5))
-    adults = max(0, request.adults)
-
-    if adults <= 0:
-        raise HTTPException(
-            status_code=400, detail="인원은 최소 1명 이상이어야 합니다."
-        )
-    if adults > MAX_GUESTS:
-        raise HTTPException(
-            status_code=400,
-            detail=f"인원은 최대 {MAX_GUESTS}명까지 예약할 수 있습니다.",
-        )
-
+    nights = _normalize_nights(request.nights)
+    adults = _normalize_adults(request.adults)
+    _validate_guest_count(adults)
     _ensure_stay_is_available(checkin, nights)
 
-    room_amount = calculate_room_amount(checkin, nights)
-    extra_detail = calculate_extra_guest_details(adults, nights)
-    bbq_amount = BBQ_FEE if bool(request.bbq) else 0
-    total_amount = room_amount + extra_detail["extra_amount"] + bbq_amount
+    quote = _build_quote(checkin, nights, adults, bool(request.bbq))
 
-    # DB 저장
     order_id = create_order_id()
     intent = {
         "order_id": order_id,
@@ -494,11 +504,11 @@ async def payment_prepare(request: PaymentPrepareRequest, http_request: Request)
         "total_guests": adults,
         "bbq": bool(request.bbq),
         "pet_with": bool(request.pet_with),
-        "extra_guests": extra_detail["extra_guests"],
-        "room_amount": room_amount,
-        "extra_amount": extra_detail["extra_amount"],
-        "bbq_amount": bbq_amount,
-        "total_amount": total_amount,
+        "extra_guests": quote["extra_guests"],
+        "room_amount": quote["room_amount"],
+        "extra_amount": quote["extra_amount"],
+        "bbq_amount": quote["bbq_amount"],
+        "total_amount": quote["total_amount"],
         "terms_version": term_version,
         "consents": required_consents,
         "arrival_time": (request.arrival_time or "").strip(),
@@ -507,17 +517,13 @@ async def payment_prepare(request: PaymentPrepareRequest, http_request: Request)
         "user_agent": user_agent,
         "status": "pending",
     }
-    save_payment_intent(intent)
-    save_payment_term_consents(order_id, required_consents, term_version, client_ip)
+    save_payment_order(intent, required_consents, term_version, client_ip)
 
     return {
         "order_id": order_id,
-        "amount": total_amount,
+        "amount": quote["total_amount"],
         "currency": "KRW",
     }
-
-
-# ── 결제 성공 콜백 ──
 
 
 @router.get("/reservation/success")
@@ -526,13 +532,6 @@ async def payment_success_page(
     orderId: str = Query(...),
     amount: int = Query(...),
 ):
-    """결제 성공 리다이렉트 핸들러.
-
-    토스 결제위젯이 결제 완료 후 successUrl로 리다이렉트하면,
-    paymentKey / orderId / amount 파라미터를 받아
-    서버에서 토스 결제 승인 API(POST /v1/payments/confirm)를 호출합니다.
-    승인 성공 시 DB 상태를 'paid'로 업데이트하고 성공 페이지를 표시합니다.
-    """
     if not TOSSPAYMENTS_SECRET_KEY:
         return _render_payment_error_page(
             "결제 설정 오류",
@@ -568,7 +567,7 @@ async def payment_success_page(
             "같은 주문의 결제 승인이 이미 진행 중입니다. 잠시 후 예약 조회 화면에서 상태를 확인해 주세요.",
             detail="승인 처리 중에는 중복 승인을 막기 위해 다시 시도할 수 없습니다.",
             status_code=409,
-            action_href="/reservation/check.html",
+            action_href=CHECK_PAGE_PATH,
             action_text="예약 상태 확인하기",
         )
     if claim_status == "date_conflict":
@@ -591,7 +590,7 @@ async def payment_success_page(
             "현재 주문 상태에서는 결제를 승인할 수 없습니다.",
             detail=f"현재 상태: {(intent or {}).get('status', 'unknown')}",
             status_code=409,
-            action_href="/reservation/check.html",
+            action_href=CHECK_PAGE_PATH,
             action_text="예약 상태 확인하기",
         )
 
@@ -607,11 +606,37 @@ async def payment_success_page(
             resp = await client.post(
                 confirm_url,
                 json=confirm_body,
-                headers={
-                    "Authorization": toss_auth_header(),
-                    "Content-Type": "application/json",
-                },
+                headers=_toss_headers(),
             )
+
+            if resp.status_code == 200:
+                payment_data = resp.json()
+
+                if _is_virtual_account_payment(payment_data):
+                    payment_key_for_cancel = payment_data.get("paymentKey") or paymentKey
+                    cancel_data = await _cancel_toss_payment(
+                        client,
+                        payment_key_for_cancel,
+                        "가상계좌 결제수단 미지원",
+                        f"reject-virtual-account-{orderId}",
+                    )
+                    _update_payment_intent_status(
+                        orderId,
+                        "failed",
+                        {
+                            "paymentKey": payment_key_for_cancel,
+                            "orderId": payment_data.get("orderId", orderId),
+                            "amount": amount,
+                            "disallowed_payment_method": payment_data,
+                            "auto_cancel_response": cancel_data,
+                        },
+                    )
+                    return _render_payment_error_page(
+                        "지원하지 않는 결제수단",
+                        "가상계좌 결제는 지원하지 않습니다. 카드 또는 간편결제로 다시 예약해 주세요.",
+                        detail="가상계좌 결제 요청은 자동 취소 처리했습니다.",
+                        status_code=400,
+                    )
     except httpx.RequestError as exc:
         _update_payment_intent_status(
             orderId,
@@ -623,13 +648,12 @@ async def payment_success_page(
             "결제 승인 요청 중 네트워크 오류가 발생했습니다. 중복 결제를 막기 위해 예약은 잠시 승인 대기 상태로 유지됩니다.",
             detail="잠시 후 예약 상태를 확인하거나 관리자에게 문의해 주세요.",
             status_code=502,
-            action_href="/reservation/check.html",
+            action_href=CHECK_PAGE_PATH,
             action_text="예약 상태 확인하기",
         )
 
     if resp.status_code == 200:
         payment_data = resp.json()
-
         _update_payment_intent_status(
             orderId,
             "paid",
@@ -642,11 +666,7 @@ async def payment_success_page(
         )
         return _render_payment_success_page(orderId)
 
-    error_data = (
-        resp.json()
-        if resp.headers.get("content-type", "").startswith("application/json")
-        else {}
-    )
+    error_data = _parse_json_response(resp)
     error_code = error_data.get("code", "UNKNOWN")
     error_message = error_data.get("message", "결제 승인에 실패했습니다.")
 
@@ -666,23 +686,16 @@ async def payment_success_page(
     )
 
 
-# ── 결제 실패/취소 콜백 ──
-
-
 @router.get("/reservation/fail")
 async def payment_fail_page(
     code: str = Query(""),
     message: str = Query(""),
     orderId: str = Query(""),
+    pendingOrderId: str = Query(""),
 ):
-    """결제 실패/취소 리다이렉트 핸들러.
-
-    사용자가 결제를 취소하거나 결제 과정에서 에러가 발생한 경우,
-    토스 결제위젯이 failUrl로 리다이렉트합니다.
-    """
     safe_message = escape(message or "결제가 취소되었거나 실패했습니다.")
     safe_code = escape(code or "USER_CANCEL")
-    safe_order_id = (orderId or "").strip()
+    safe_order_id = (orderId or pendingOrderId or "").strip()
 
     if safe_order_id:
         failure_status = "cancelled" if code == "PAY_PROCESS_CANCELED" else "failed"
@@ -693,7 +706,8 @@ async def payment_fail_page(
                 "payment_failure": {
                     "code": code or "USER_CANCEL",
                     "message": message or "결제가 취소되었거나 실패했습니다.",
-                    "orderId": safe_order_id,
+                    "orderId": orderId or "",
+                    "pendingOrderId": pendingOrderId or "",
                     "recordedAt": datetime.now().isoformat(timespec="seconds"),
                 }
             },
@@ -725,7 +739,7 @@ async def payment_fail_page(
         <h1>결제가 완료되지 않았습니다</h1>
         <p>{safe_message}</p>
         <div class="error-code">코드: {safe_code}</div>
-        <a href="/reservation/book.html">다시 예약하기</a>
+        <a href="{BOOKING_PAGE_PATH}">다시 예약하기</a>
     </div>
 </body>
 </html>

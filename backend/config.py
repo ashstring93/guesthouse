@@ -1,12 +1,4 @@
-"""
-애플리케이션 전역 설정 모듈.
-
-환경변수 로드, 경로 상수, 요금 상수, 공휴일 세트, 약관 카탈로그 등
-프로젝트 전반에서 사용하는 설정값을 한곳에서 관리합니다.
-
-다른 모듈에서 사용 시:
-    from config import BACKEND_DIR, BASE_WEEKDAY_RATE, HOLIDAY_DATES
-"""
+"""환경변수와 전역 설정."""
 
 import os
 from datetime import date
@@ -15,133 +7,88 @@ from pathlib import Path
 import holidays
 from dotenv import load_dotenv
 
-# ── 경로 상수 ──
-# __file__ 기준으로 backend/, project root, frontend 디렉토리를 결정합니다.
+
+def _env_int(name: str, default: int) -> int:
+    return int(os.getenv(name, str(default)))
+
+
+def _env_csv(name: str, default: str) -> tuple[str, ...]:
+    return tuple(
+        value.strip()
+        for value in os.getenv(name, default).split(",")
+        if value.strip()
+    )
+
+
 BACKEND_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = BACKEND_DIR.parent
 FRONTEND_DIR = PROJECT_ROOT / "frontend"
 RESERVATION_PAGES_DIR = FRONTEND_DIR / "pages" / "reservation"
 
-# ── 환경변수 로드 ──
-# .env 파일은 backend/ 디렉토리에만 존재합니다.
 load_dotenv(BACKEND_DIR / ".env")
 
-# ── 데이터베이스 경로 ──
 DB_PATH = BACKEND_DIR / "guesthouse.db"
 
-# ── 숙소 요금 상수 ──
-# 기본 요금: 평일/주말 기준 1박 요금
-BASE_WEEKDAY_RATE = int(os.getenv("BASE_WEEKDAY_RATE", "184847"))
-BASE_WEEKEND_RATE = int(os.getenv("BASE_WEEKEND_RATE", "242612"))
+BASE_WEEKDAY_RATE = _env_int("BASE_WEEKDAY_RATE", 184847)
+BASE_WEEKEND_RATE = _env_int("BASE_WEEKEND_RATE", 242612)
+BASE_GUESTS = _env_int("BASE_GUESTS", 2)
+MAX_GUESTS = _env_int("MAX_GUESTS", 8)
+ADULT_EXTRA_FEE = _env_int("ADULT_EXTRA_FEE", 20000)
+BBQ_FEE = _env_int("BBQ_FEE", 20000)
 
-# 인원 관련 상수
-BASE_GUESTS = int(os.getenv("BASE_GUESTS", "2"))  # 기본 인원 (추가 요금 없음)
-MAX_GUESTS = int(os.getenv("MAX_GUESTS", "8"))  # 최대 수용 인원
-
-# 추가 요금
-ADULT_EXTRA_FEE = int(os.getenv("ADULT_EXTRA_FEE", "20000"))  # 추가 인원 1인당 1박 요금
-BBQ_FEE = int(os.getenv("BBQ_FEE", "20000"))  # BBQ 옵션 요금
-
-# ── 토스페이먼츠 설정 ──
 TOSSPAYMENTS_API_BASE = os.getenv(
     "TOSSPAYMENTS_API_BASE", "https://api.tosspayments.com"
 ).rstrip("/")
+TOSSPAYMENTS_WIDGET_CLIENT_KEY = os.getenv("TOSSPAYMENTS_WIDGET_CLIENT_KEY", "")
+TOSSPAYMENTS_PAYMENT_METHOD_VARIANT_KEY = os.getenv(
+    "TOSSPAYMENTS_PAYMENT_METHOD_VARIANT_KEY", "DEFAULT"
+).strip()
 TOSSPAYMENTS_SECRET_KEY = os.getenv("TOSSPAYMENTS_SECRET_KEY", "")
 
-# ── 관리자 대시보드 ──
 ADMIN_TOKEN = os.getenv("ADMIN_DASHBOARD_TOKEN", "").strip()
+CORS_ORIGINS = list(_env_csv("CORS_ORIGINS", "http://localhost:8000"))
 
-# ── CORS 설정 ──
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:8000").split(",")
-
-# ── 공휴일 세트 ──
-# holidays 라이브러리로 한국 공휴일을 자동 생성하고,
-# 환경변수에 수동으로 추가한 날짜를 병합합니다.
-current_year = date.today().year
-kr_holidays = holidays.KR(years=[current_year, current_year + 1, current_year + 2])
-DYNAMIC_HOLIDAY_DATES = {str(d) for d in kr_holidays.keys()}
-
-ENV_HOLIDAY_DATES = {
-    value.strip()
-    for value in os.getenv("HOLIDAY_DATES", "").split(",")
-    if value.strip()
-}
-HOLIDAY_DATES = DYNAMIC_HOLIDAY_DATES | ENV_HOLIDAY_DATES
-
-# ── 약관/예약 상태 필터 ──
-TERMS_VERSION = os.getenv("PAYMENT_TERMS_VERSION", "2026-03-09-v1").strip()
-
-# 예약 현황 캘린더에서 마감으로 표시할 결제 상태 목록
-BOOKED_STATUS_FILTER = tuple(
-    status.strip().lower()
-    for status in os.getenv("BOOKED_STATUSES", "confirming,confirmed,paid").split(",")
-    if status.strip()
+CURRENT_YEAR = date.today().year
+KR_HOLIDAYS = holidays.KR(years=[CURRENT_YEAR, CURRENT_YEAR + 1, CURRENT_YEAR + 2])
+HOLIDAY_DATES = {str(d) for d in KR_HOLIDAYS.keys()} | set(
+    _env_csv("HOLIDAY_DATES", "")
 )
 
-# ── 약관 카탈로그 ──
-# 각 약관의 제목과 요약 텍스트를 정의합니다.
-# 결제 시 약관 동의 기록(payment_term_consents)에 snapshot으로 저장됩니다.
+TERMS_VERSION = os.getenv("PAYMENT_TERMS_VERSION", "2026-03-09-v1").strip()
+BOOKED_STATUS_FILTER = tuple(
+    status.lower() for status in _env_csv("BOOKED_STATUSES", "confirming,confirmed,paid")
+)
+
 PAYMENT_TERMS_CATALOG = {
     "policy": {
-        "title": "유의사항/환불규정 동의",
+        "title": "숙소 이용 및 환불규정 동의",
         "snapshot_text": (
-            "체크인/체크아웃 및 환불 기준: 7일 전 전액 환불, 6~3일 전 50%, 2일 이내 환불 불가."
+            "체크인은 오후 3시 이후, 체크아웃은 오전 11시까지이며, 체크인 7일 전까지 취소 시 100% 환불, "
+            "6일~3일 전 취소 시 50% 환불, 2일 이내 취소는 환불이 어렵습니다."
         ),
     },
     "privacy": {
         "title": "개인정보 수집 및 이용동의",
         "snapshot_text": (
-            "수집 항목(예약자명/연락처/결제확인정보), 이용 목적(예약·결제·문의 대응), 법정 보유기간 보관."
+            "수집 항목은 예약자명, 연락처, 체크인 일정, 결제 관련 확인 정보이며, 예약 확인, 숙박 서비스 제공, "
+            "결제 처리, 문의 응대, 관계 법령상 거래기록 보존 목적으로 이용합니다."
         ),
     },
     "thirdparty": {
-        "title": "개인정보 제3자 제공동의",
+        "title": "결제 처리 관련 개인정보 제공 동의",
         "snapshot_text": (
-            "제공 대상(PG/카드사/간편결제사), 제공 항목(주문번호/결제금액 등), 제공 목적(승인·정산·환불)."
+            "제공 대상은 토스페이먼츠, 카드사, 은행, 간편결제 사업자 등 결제수단 관련 사업자이며, "
+            "제공 항목은 예약자명, 연락처, 주문번호, 결제금액 등 결제 승인과 환불 처리에 필요한 정보입니다."
         ),
     },
     "adult": {
-        "title": "미성년자 아님 동의",
-        "snapshot_text": "예약자는 본인이며 미성년자가 아니고 본인 명의로 예약/결제를 진행합니다.",
+        "title": "성인 본인 예약 확인",
+        "snapshot_text": (
+            "예약자는 만 19세 이상 성인이며 본인 명의로 예약과 결제를 진행하고, 미성년자의 무단 예약이 확인되는 경우 "
+            "추가 확인 또는 예약 취소가 이뤄질 수 있음을 확인합니다."
+        ),
     },
 }
-
-# ── 챗봇 이미지 매핑 ──
-# 챗봇 응답 텍스트에 특정 키워드가 포함되면, 관련 이미지를 응답 끝에 자동 첨부합니다.
-# 키: 감지할 키워드 (응답 텍스트에 포함 여부 확인)
-# 값: 첨부할 이미지 목록 (alt=설명, path=정적 파일 경로)
-PAYMENT_TERMS_CATALOG.update(
-    {
-        "policy": {
-            "title": "숙소 이용 및 환불규정 동의",
-            "snapshot_text": (
-                "체크인은 오후 3시 이후, 체크아웃은 오전 11시까지이며, 체크인 7일 전까지 취소 시 100% 환불, "
-                "6일~3일 전 취소 시 50% 환불, 2일 이내 취소는 환불이 어렵습니다."
-            ),
-        },
-        "privacy": {
-            "title": "개인정보 수집 및 이용동의",
-            "snapshot_text": (
-                "수집 항목은 예약자명, 연락처, 체크인 일정, 결제 관련 확인 정보이며, 예약 확인, 숙박 서비스 제공, "
-                "결제 처리, 문의 응대, 관계 법령상 거래기록 보존 목적으로 이용합니다."
-            ),
-        },
-        "thirdparty": {
-            "title": "결제 처리 관련 개인정보 제공 동의",
-            "snapshot_text": (
-                "제공 대상은 토스페이먼츠, 카드사, 은행, 간편결제 사업자 등 결제수단 관련 사업자이며, "
-                "제공 항목은 예약자명, 연락처, 주문번호, 결제금액 등 결제 승인과 환불 처리에 필요한 정보입니다."
-            ),
-        },
-        "adult": {
-            "title": "성인 본인 예약 확인",
-            "snapshot_text": (
-                "예약자는 만 19세 이상 성인이며 본인 명의로 예약과 결제를 진행하고, 미성년자의 무단 예약이 확인되는 경우 "
-                "추가 확인 또는 예약 취소가 이뤄질 수 있음을 확인합니다."
-            ),
-        },
-    }
-)
 
 CHATBOT_IMAGE_MAP = {
     "주차": [

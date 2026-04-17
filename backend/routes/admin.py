@@ -1,17 +1,4 @@
-"""
-관리자 API 라우터.
-
-예약 목록 조회, 결제 취소(환불 정책 자동 적용), 관리자 대시보드 페이지를 제공합니다.
-모든 관리자 API는 token 쿼리 파라미터로 인증합니다.
-
-엔드포인트:
-    GET  /api/admin/date-blocks      → 수동 차단 일정 목록 조회
-    POST /api/admin/date-blocks      → 수동 차단 일정 추가/갱신
-    DELETE /api/admin/date-blocks/{id} → 수동 차단 일정 삭제
-    GET  /api/admin/reservations    → 전체 예약 목록 + 환불 예상 금액
-    POST /api/admin/cancel-payment  → 결제 취소 (환불 정책 적용)
-    GET  /admin/dashboard           → 관리자 대시보드 HTML 페이지
-"""
+"""관리자 API."""
 
 import json
 
@@ -32,30 +19,84 @@ from database import (
     upsert_admin_date_block,
 )
 from models import AdminDateBlockRequest, CancelPaymentRequest
-from utils import calculate_refund_amount, parse_date_or_400, toss_auth_header
+from utils import (
+    calculate_refund_amount,
+    load_json_object,
+    parse_date_or_400,
+    toss_auth_header,
+)
 
 router = APIRouter(tags=["admin"])
-
-
-# ── 인증 헬퍼 ──
+CANCELLED_STATUSES = {"cancelled", "refunded"}
 
 
 def _verify_admin_token(token: str):
-    """관리자 토큰 검증.
-
-    환경변수 ADMIN_DASHBOARD_TOKEN과 비교하여,
-    토큰이 설정되지 않았거나 불일치 시 403 에러를 발생시킵니다.
-    """
     if not ADMIN_TOKEN or token != ADMIN_TOKEN:
         raise HTTPException(status_code=403, detail="관리자 인증에 실패했습니다.")
 
 
-# ── 수동 차단 일정 관리 ──
+def _extract_payment_key(order: dict) -> str:
+    return str(load_json_object(order.get("payload")).get("paymentKey", ""))
+
+
+def _mark_order_cancelled(
+    order_id: str,
+    cancel_reason: str,
+    payload: dict | None = None,
+):
+    serialized_payload = json.dumps(payload, ensure_ascii=False) if payload else None
+
+    with get_db() as conn:
+        if serialized_payload is None:
+            conn.execute(
+                """
+                UPDATE payment_intents
+                SET status = ?,
+                    updated_at = CURRENT_TIMESTAMP,
+                    cancel_reason = ?,
+                    cancelled_at = CURRENT_TIMESTAMP
+                WHERE order_id = ?
+                """,
+                ("cancelled", cancel_reason, order_id),
+            )
+            return
+
+        conn.execute(
+            """
+            UPDATE payment_intents
+            SET status = ?,
+                updated_at = CURRENT_TIMESTAMP,
+                cancel_reason = ?,
+                cancelled_at = CURRENT_TIMESTAMP,
+                payload = ?
+            WHERE order_id = ?
+            """,
+            ("cancelled", cancel_reason, serialized_payload, order_id),
+        )
+
+
+def _build_cancel_body(cancel_reason: str, refund_info: dict) -> dict:
+    body = {"cancelReason": cancel_reason}
+    if refund_info["refund_rate"] < 100:
+        body["cancelAmount"] = refund_info["refund_amount"]
+    return body
+
+
+def _parse_toss_error(resp: httpx.Response) -> dict:
+    if not resp.headers.get("content-type", "").startswith("application/json"):
+        return {}
+    try:
+        return resp.json()
+    except ValueError:
+        return {}
+
+
+def _cancel_idempotency_key(order_id: str, refund_info: dict) -> str:
+    return f"cancel-{order_id}-{refund_info['refund_amount']}"
 
 
 @router.get("/api/admin/date-blocks")
 async def admin_list_date_blocks(token: str = Query("")):
-    """관리자용: 수동 차단 일정 목록 조회."""
     _verify_admin_token(token)
     return {"date_blocks": list_admin_date_blocks()}
 
@@ -65,7 +106,6 @@ async def admin_create_date_block(
     request: AdminDateBlockRequest,
     token: str = Query(""),
 ):
-    """관리자용: 수동 차단 일정 추가 또는 동일 범위 사유 갱신."""
     _verify_admin_token(token)
 
     start_date = parse_date_or_400(request.start_date, "start_date")
@@ -90,7 +130,6 @@ async def admin_create_date_block(
 
 @router.delete("/api/admin/date-blocks/{block_id}")
 async def admin_remove_date_block(block_id: int, token: str = Query("")):
-    """관리자용: 수동 차단 일정 삭제."""
     _verify_admin_token(token)
 
     if block_id <= 0:
@@ -103,16 +142,8 @@ async def admin_remove_date_block(block_id: int, token: str = Query("")):
     return {"success": True}
 
 
-# ── 예약 목록 조회 ──
-
-
 @router.get("/api/admin/reservations")
 async def admin_list_reservations(token: str = Query("")):
-    """관리자용: 전체 예약 목록 + 환불 예상 금액 조회.
-
-    각 예약 건에 대해 환불 정책 기반 환불 예상 정보와
-    결제 완료 건의 paymentKey를 함께 반환합니다.
-    """
     _verify_admin_token(token)
 
     with get_db() as conn:
@@ -123,27 +154,15 @@ async def admin_list_reservations(token: str = Query("")):
     results = []
     for row in rows:
         item = dict(row)
-        # 환불 예상 정보 계산
         refund_info = calculate_refund_amount(
             item.get("checkin_date", ""), item.get("total_amount", 0)
         )
         item["refund_info"] = refund_info
 
-        # payload에서 paymentKey 추출 (결제 완료된 건에 한함)
-        payment_key = ""
-        if item.get("payload"):
-            try:
-                payload_data = json.loads(item["payload"])
-                payment_key = payload_data.get("paymentKey", "")
-            except (json.JSONDecodeError, TypeError):
-                pass
-        item["payment_key"] = payment_key
+        item["payment_key"] = _extract_payment_key(item)
         results.append(item)
 
     return {"reservations": results}
-
-
-# ── 결제 취소 ──
 
 
 @router.post("/api/admin/cancel-payment")
@@ -151,17 +170,8 @@ async def admin_cancel_payment(
     request: CancelPaymentRequest,
     token: str = Query(""),
 ):
-    """관리자용: 결제 취소 (환불 정책 자동 적용).
-
-    1. DB에서 주문 조회 및 상태 검증
-    2. paymentKey 추출
-    3. 환불 금액 계산 (체크인 잔여일 기준)
-    4. 토스페이먼츠 결제 취소 API 호출
-    5. DB 상태 업데이트
-    """
     _verify_admin_token(token)
 
-    # 1. DB에서 주문 조회
     with get_db() as conn:
         row = conn.execute(
             "SELECT * FROM payment_intents WHERE order_id = ?", (request.order_id,)
@@ -172,7 +182,7 @@ async def admin_cancel_payment(
 
     order = dict(row)
 
-    if order.get("status") in ("cancelled", "refunded"):
+    if order.get("status") in CANCELLED_STATUSES:
         raise HTTPException(status_code=400, detail="이미 취소된 주문입니다.")
 
     if order.get("status") != "paid":
@@ -181,22 +191,13 @@ async def admin_cancel_payment(
             detail=f"결제 완료 상태가 아닙니다. (현재: {order.get('status')})",
         )
 
-    # 2. paymentKey 추출
-    payment_key = ""
-    if order.get("payload"):
-        try:
-            payload_data = json.loads(order["payload"])
-            payment_key = payload_data.get("paymentKey", "")
-        except (json.JSONDecodeError, TypeError):
-            pass
-
+    payment_key = _extract_payment_key(order)
     if not payment_key:
         raise HTTPException(
             status_code=400,
             detail="결제 키(paymentKey)를 찾을 수 없습니다. 토스 상점관리자에서 직접 취소해 주세요.",
         )
 
-    # 3. 환불 금액 계산
     refund_info = calculate_refund_amount(
         order.get("checkin_date", ""), order.get("total_amount", 0)
     )
@@ -204,82 +205,51 @@ async def admin_cancel_payment(
     if refund_info["refund_amount"] <= 0:
         raise HTTPException(status_code=400, detail=refund_info["message"])
 
-    # 4. 토스페이먼츠 결제 취소 API 호출
     cancel_url = f"{TOSSPAYMENTS_API_BASE}/v1/payments/{payment_key}/cancel"
-    cancel_body = {"cancelReason": request.cancel_reason}
-
-    # 부분 환불인 경우 cancelAmount 지정
-    if refund_info["refund_rate"] < 100:
-        cancel_body["cancelAmount"] = refund_info["refund_amount"]
+    cancel_body = _build_cancel_body(request.cancel_reason, refund_info)
 
     if not TOSSPAYMENTS_SECRET_KEY:
-        # 시크릿 키가 없을 때는 DB 상태만 업데이트 (테스트/개발 환경용)
-        with get_db() as conn:
-            conn.execute(
-                "UPDATE payment_intents SET status = ?, updated_at = CURRENT_TIMESTAMP, cancel_reason = ?, cancelled_at = CURRENT_TIMESTAMP WHERE order_id = ?",
-                ("cancelled", request.cancel_reason, request.order_id),
-            )
-
-        return {
-            "success": True,
-            "message": "시크릿 키 미설정 → DB 상태만 cancelled로 변경 (토스 API 미호출)",
-            "refund_info": refund_info,
-        }
+        raise HTTPException(
+            status_code=500,
+            detail="토스 시크릿 키가 없어 결제 취소 API를 호출할 수 없습니다.",
+        )
 
     try:
+        headers = {
+            "Authorization": toss_auth_header(),
+            "Content-Type": "application/json",
+            "Idempotency-Key": _cancel_idempotency_key(request.order_id, refund_info),
+        }
         async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.post(
                 cancel_url,
                 json=cancel_body,
-                headers={
-                    "Authorization": toss_auth_header(),
-                    "Content-Type": "application/json",
-                },
+                headers=headers,
             )
     except httpx.RequestError as exc:
         raise HTTPException(status_code=502, detail=f"토스 결제 취소 요청 실패: {exc}")
 
     if resp.status_code == 200:
-        cancel_data = resp.json()
-        # 5. DB 상태 업데이트
-        with get_db() as conn:
-            conn.execute(
-                "UPDATE payment_intents SET status = ?, updated_at = CURRENT_TIMESTAMP, cancel_reason = ?, cancelled_at = CURRENT_TIMESTAMP, payload = ? WHERE order_id = ?",
-                (
-                    "cancelled",
-                    request.cancel_reason,
-                    json.dumps(cancel_data, ensure_ascii=False),
-                    request.order_id,
-                ),
-            )
-
+        _mark_order_cancelled(request.order_id, request.cancel_reason, resp.json())
         return {
             "success": True,
             "message": f"결제 취소 완료 (환불: {refund_info['refund_amount']:,}원)",
             "refund_info": refund_info,
         }
-    else:
-        error_data = (
-            resp.json()
-            if resp.headers.get("content-type", "").startswith("application/json")
-            else {}
-        )
-        raise HTTPException(
-            status_code=resp.status_code,
-            detail=f"토스 결제 취소 실패: {error_data.get('message', '알 수 없는 오류')} (코드: {error_data.get('code', 'UNKNOWN')})",
-        )
 
-
-# ── 관리자 대시보드 페이지 ──
+    error_data = _parse_toss_error(resp)
+    raise HTTPException(
+        status_code=resp.status_code,
+        detail=(
+            "토스 결제 취소 실패: "
+            f"{error_data.get('message', '알 수 없는 오류')} "
+            f"(코드: {error_data.get('code', 'UNKNOWN')})"
+        ),
+    )
 
 
 @router.get("/admin/dashboard")
 async def admin_dashboard_page():
-    """관리자 대시보드 페이지.
-
-    admin-dashboard.html 파일을 서빙합니다.
-    파일이 없을 경우 404 에러 페이지를 표시합니다.
-    """
     admin_html = FRONTEND_DIR / "pages" / "admin" / "admin-dashboard.html"
     if not admin_html.exists():
         return HTMLResponse(

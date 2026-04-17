@@ -20,3 +20,6 @@ backend/chatbot_logs.db
 # Frontend/General
 node_modules/
 .git/
+
+# Local source photos
+frontend/images/new_images/

@@ -1,6 +1,4 @@
-﻿document.addEventListener('DOMContentLoaded', () => {
-    console.log('Watermill House website loaded.');
-
+document.addEventListener('DOMContentLoaded', () => {
     const GUESTHOUSE_ADDRESS = '전북특별자치도 전주시 완산구 물레방아3길 19-3';
     const GUESTHOUSE_PARCEL = '태평동 180-3';
     const GUESTHOUSE_POSTCODE = '54998';
@@ -115,7 +113,12 @@
     }
 
     const heroSlider = document.querySelector('.hero-slider');
-    const images = ['images/1.avif', 'images/6.avif', 'images/9.avif'];
+    const images = [
+        'images/hero-garden-3.jpg',
+        'images/hero-garden-1.jpg',
+        'images/hero-garden-2.jpg',
+        'images/hero-outside-view.jpg',
+    ];
     let currentSlide = 0;
 
     if (heroSlider) {
@@ -135,142 +138,6 @@
             slides[currentSlide].classList.add('active');
         }, 5000);
     }
-
-    function initializeRoomCarousel() {
-        const roomGrid = document.querySelector('.room-grid');
-        if (!roomGrid) return;
-
-        const roomItems = Array.from(roomGrid.querySelectorAll('.room-item'));
-        if (roomItems.length < 2) return;
-
-        const gardenItem = roomItems[0];
-        const interiorItems = roomItems.slice(1);
-
-        gardenItem.className = 'room-item garden-card';
-
-        const carousel = document.createElement('section');
-        carousel.className = 'interior-carousel';
-        carousel.setAttribute('aria-label', '실내 공간 둘러보기');
-
-        const viewport = document.createElement('div');
-        viewport.className = 'interior-carousel-viewport';
-        viewport.tabIndex = 0;
-
-        const track = document.createElement('div');
-        track.className = 'interior-carousel-track';
-        viewport.appendChild(track);
-
-        const prevButton = document.createElement('button');
-        prevButton.type = 'button';
-        prevButton.className = 'carousel-arrow carousel-arrow-prev';
-        prevButton.setAttribute('aria-label', '이전 사진');
-        prevButton.textContent = '‹';
-
-        const nextButton = document.createElement('button');
-        nextButton.type = 'button';
-        nextButton.className = 'carousel-arrow carousel-arrow-next';
-        nextButton.setAttribute('aria-label', '다음 사진');
-        nextButton.textContent = '›';
-
-        carousel.append(viewport, prevButton, nextButton);
-
-        roomGrid.replaceChildren(gardenItem, carousel);
-        roomGrid.classList.add('is-carousel-ready');
-
-        interiorItems.forEach((item, index) => {
-            item.className = index === 0 ? 'interior-slide is-active' : 'interior-slide';
-            const image = item.querySelector('img');
-            if (image) image.draggable = false;
-            track.appendChild(item);
-        });
-
-        let activeIndex = 0;
-        let pointerStartX = null;
-        let pointerOffsetX = 0;
-        let activePointerId = null;
-        let isDragging = false;
-
-        function renderTrack(offsetX = 0, animate = true) {
-            track.style.transition = animate
-                ? 'transform 0.55s cubic-bezier(0.22, 0.61, 0.36, 1)'
-                : 'none';
-            track.style.transform = `translateX(calc(${-activeIndex * 100}% + ${offsetX}px))`;
-        }
-
-        function goToSlide(nextIndex) {
-            activeIndex = (nextIndex + interiorItems.length) % interiorItems.length;
-            renderTrack(0, true);
-
-            interiorItems.forEach((slide, index) => {
-                slide.classList.toggle('is-active', index === activeIndex);
-            });
-        }
-
-        prevButton.addEventListener('click', () => goToSlide(activeIndex - 1));
-        nextButton.addEventListener('click', () => goToSlide(activeIndex + 1));
-
-        viewport.addEventListener('keydown', (event) => {
-            if (event.key === 'ArrowLeft') {
-                event.preventDefault();
-                goToSlide(activeIndex - 1);
-            }
-
-            if (event.key === 'ArrowRight') {
-                event.preventDefault();
-                goToSlide(activeIndex + 1);
-            }
-        });
-
-        viewport.addEventListener('pointerdown', (event) => {
-            if (event.pointerType === 'mouse' && event.button !== 0) return;
-            pointerStartX = event.clientX;
-            pointerOffsetX = 0;
-            activePointerId = event.pointerId;
-            isDragging = true;
-            viewport.classList.add('is-dragging');
-            track.style.transition = 'none';
-            viewport.setPointerCapture(event.pointerId);
-        });
-
-        viewport.addEventListener('pointermove', (event) => {
-            if (!isDragging || activePointerId !== event.pointerId || pointerStartX === null) return;
-            pointerOffsetX = event.clientX - pointerStartX;
-            renderTrack(pointerOffsetX, false);
-        });
-
-        function endDrag(event) {
-            if (!isDragging || activePointerId !== event.pointerId) return;
-
-            const threshold = Math.min(140, viewport.clientWidth * 0.18);
-            const deltaX = pointerOffsetX;
-
-            isDragging = false;
-            pointerStartX = null;
-            pointerOffsetX = 0;
-            activePointerId = null;
-            viewport.classList.remove('is-dragging');
-
-            if (viewport.hasPointerCapture(event.pointerId)) {
-                viewport.releasePointerCapture(event.pointerId);
-            }
-
-            if (Math.abs(deltaX) < threshold) {
-                renderTrack(0, true);
-                return;
-            }
-
-            if (deltaX > 0) goToSlide(activeIndex - 1);
-            if (deltaX < 0) goToSlide(activeIndex + 1);
-        }
-
-        viewport.addEventListener('pointerup', endDrag);
-        viewport.addEventListener('pointercancel', endDrag);
-        viewport.addEventListener('dragstart', (event) => event.preventDefault());
-
-        goToSlide(0);
-    }
-
-    initializeRoomCarousel();
 
     const header = document.getElementById('main-header');
     const heroContent = document.querySelector('.hero-content');

@@ -1,33 +1,20 @@
-/**
- * 臾쇰젅諛⑹븘?섏슦??AI 梨쀫큸 ?꾩젽
- * 諛깆뿏??API? ?듭떊?섏뿬 ??뷀삎 ?명꽣?섏씠???쒓났
- */
-
 class WatermillChatbot {
     constructor(apiUrl = '') {
         this.apiUrl = apiUrl;
         this.conversationId = this.generateId();
         this.isOpen = false;
-        this.messageHistory = [];
 
         this.init();
     }
 
     init() {
-        // DOM ?붿냼 ?앹꽦
         this.createChatbotUI();
-
-        // ?대깽??由ъ뒪???깅줉
         this.attachEventListeners();
-
-        // ?섏쁺 硫붿떆吏 ?쒖떆
         this.showWelcomeMessage();
     }
 
     createChatbotUI() {
-        // 梨쀫큸 HTML ?앹꽦
-        const chatbotHTML = `
-            <!-- 플로팅 버튼 -->
+        const markup = `
             <button class="chatbot-button" id="chatbotButton" aria-label="챗봇 열기">
                 <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                     <defs>
@@ -53,16 +40,13 @@ class WatermillChatbot {
             </button>
 
 
-            <!-- 대화창 -->
             <div class="chatbot-container" id="chatbotContainer">
                 <div class="chatbot-header">
                     <h3>🏠 물레방아하우스 안내봇</h3>
                     <button class="chatbot-close" id="chatbotClose" aria-label="챗봇 닫기">×</button>
                 </div>
 
-                <div class="chatbot-messages" id="chatbotMessages">
-                    <!-- 메시지가 여기에 추가됩니다 -->
-                </div>
+                <div class="chatbot-messages" id="chatbotMessages"></div>
 
                 <div class="typing-indicator" id="typingIndicator">
                     <div class="typing-dot"></div>
@@ -87,10 +71,8 @@ class WatermillChatbot {
             </div>
         `;
 
-        // body??異붽?
-        document.body.insertAdjacentHTML('beforeend', chatbotHTML);
+        document.body.insertAdjacentHTML('beforeend', markup);
 
-        // DOM 李몄“ ???
         this.button = document.getElementById('chatbotButton');
         this.floatingHint = document.getElementById('chatbotFloatingHint');
         this.container = document.getElementById('chatbotContainer');
@@ -142,16 +124,124 @@ class WatermillChatbot {
         });
     }
 
+    getChatApiUrl() {
+        return this.apiUrl
+            ? `${this.apiUrl}/api/chat`
+            : `${this.getAppBasePath()}/api/chat`;
+    }
+
+    setBusy(isBusy) {
+        this.sendButton.disabled = isBusy;
+        if (!isBusy) {
+            this.input.focus();
+        }
+    }
+
+    removeWelcomeMessage() {
+        const welcomeMessage = this.messagesContainer.querySelector('.welcome-message');
+        if (welcomeMessage) {
+            welcomeMessage.remove();
+        }
+    }
+
+    createBotMessage() {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message bot';
+        this.messagesContainer.appendChild(messageDiv);
+        this.scrollToBottom();
+        return messageDiv;
+    }
+
+    parseStreamEvent(rawEvent) {
+        const event = { type: 'message', data: {} };
+        const dataLines = [];
+
+        rawEvent.split(/\r?\n/).forEach((line) => {
+            if (line.startsWith('event:')) {
+                event.type = line.slice(6).trim();
+            } else if (line.startsWith('data:')) {
+                dataLines.push(line.slice(5).trimStart());
+            }
+        });
+
+        const rawData = dataLines.join('\n');
+        if (!rawData) {
+            return event;
+        }
+
+        try {
+            event.data = JSON.parse(rawData);
+        } catch (_) {
+            event.data = { text: rawData };
+        }
+
+        return event;
+    }
+
+    handleStreamEvent(rawEvent, handlers) {
+        const event = this.parseStreamEvent(rawEvent);
+
+        if (event.type === 'session' && event.data.session_id) {
+            this.conversationId = event.data.session_id;
+            return;
+        }
+
+        if (event.type === 'chunk') {
+            handlers.onChunk(event.data.text || '');
+            return;
+        }
+
+        if (event.type === 'error') {
+            throw new Error(event.data.message || '챗봇 응답 생성 중 오류가 발생했습니다.');
+        }
+    }
+
+    async readChatStream(response, handlers) {
+        if (!response.body) {
+            handlers.onChunk(await response.text());
+            return;
+        }
+
+        const contentType = response.headers.get('content-type') || '';
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+
+            if (!contentType.includes('text/event-stream')) {
+                handlers.onChunk(chunk);
+                continue;
+            }
+
+            buffer += chunk;
+            const events = buffer.split('\n\n');
+            buffer = events.pop() || '';
+
+            events.forEach((rawEvent) => {
+                if (rawEvent.trim()) {
+                    this.handleStreamEvent(rawEvent, handlers);
+                }
+            });
+        }
+
+        if (contentType.includes('text/event-stream') && buffer.trim()) {
+            this.handleStreamEvent(buffer, handlers);
+        }
+    }
+
     attachEventListeners() {
-        // 梨쀫큸 ?닿린/?リ린
         this.button.addEventListener('click', () => this.toggleChatbot());
         this.closeButton.addEventListener('click', () => this.toggleChatbot());
 
-        // 硫붿떆吏 ?꾩넚
         this.sendButton.addEventListener('click', () => this.sendMessage());
-        this.input.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
+        this.input.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
                 this.sendMessage();
             }
         });
@@ -184,10 +274,9 @@ class WatermillChatbot {
 
         this.messagesContainer.innerHTML = welcomeHTML;
 
-        // 異붿쿇 吏덈Ц ?대┃ ?대깽??
-        document.querySelectorAll('.suggested-question').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const question = e.target.dataset.question;
+        this.messagesContainer.querySelectorAll('.suggested-question').forEach((button) => {
+            button.addEventListener('click', (event) => {
+                const question = event.currentTarget.dataset.question;
                 this.input.value = question;
                 this.sendMessage();
             });
@@ -199,32 +288,18 @@ class WatermillChatbot {
 
         if (!message) return;
 
-        // ?낅젰李?珥덇린??諛?踰꾪듉 鍮꾪솢?깊솕
         this.input.value = '';
-        this.sendButton.disabled = true;
-
-        // ?섏쁺 硫붿떆吏 ?쒓굅 (泥?硫붿떆吏??寃쎌슦)
-        const welcomeMsg = this.messagesContainer.querySelector('.welcome-message');
-        if (welcomeMsg) {
-            welcomeMsg.remove();
-        }
-
-        // ?ъ슜??硫붿떆吏 ?쒖떆
+        this.setBusy(true);
+        this.removeWelcomeMessage();
         this.addMessage(message, 'user');
-
-        // ??댄븨 ?몃뵒耳?댄꽣 ?쒖떆
         this.showTyping();
 
         try {
-            // API ?몄텧 (?ㅽ듃由щ컢)
-            const defaultApiPath = `${this.getAppBasePath()}/api/chat`;
-            const url = this.apiUrl
-                ? `${this.apiUrl}/api/chat`
-                : defaultApiPath;
-            const response = await fetch(url, {
+            const response = await fetch(this.getChatApiUrl(), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'text/event-stream',
                 },
                 body: JSON.stringify({
                     question: message,
@@ -236,51 +311,37 @@ class WatermillChatbot {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            // 遊?硫붿떆吏 而⑦뀒?대꼫 ?앹꽦 (鍮??곹깭濡?
-            const botMessageDiv = document.createElement('div');
-            botMessageDiv.className = 'message bot';
-            this.messagesContainer.appendChild(botMessageDiv);
-            this.scrollToBottom();
-
-            // ?ㅽ듃由??쎄린
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
+            const botMessageDiv = this.createBotMessage();
             let isFirstChunk = true;
             let fullAnswer = '';
 
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
+            await this.readChatStream(response, {
+                onChunk: (chunk) => {
+                    if (!chunk) return;
 
-                const chunk = decoder.decode(value, { stream: true });
-                fullAnswer += chunk;
+                    if (isFirstChunk) {
+                        this.hideTyping();
+                        isFirstChunk = false;
+                    }
 
-                if (isFirstChunk) {
-                    this.hideTyping();
-                    isFirstChunk = false;
+                    fullAnswer += chunk;
+
+                    this.hydrateMarkdown(botMessageDiv, fullAnswer);
+                    this.scrollToBottom();
                 }
+            });
 
-                // 留덊겕?ㅼ슫 ?뚯떛???곸슜?섏뿬 HTML濡??뚮뜑留?
-                this.hydrateMarkdown(botMessageDiv, fullAnswer);
-                this.scrollToBottom();
-            }
-
-            // 硫붿떆吏 ?덉뒪?좊━ ???
-            this.messageHistory.push(
-                { role: 'user', content: message },
-                { role: 'assistant', content: fullAnswer }
-            );
+            if (isFirstChunk) this.hideTyping();
 
         } catch (error) {
-            this.hideTyping(); // ?먮윭 諛쒖깮 ???몃뵒耳?댄꽣 ?④?
+            this.hideTyping();
             this.addMessage(
                 '죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
                 'bot'
             );
             console.error('Chatbot API Error:', error);
         } finally {
-            this.sendButton.disabled = false;
-            this.input.focus();
+            this.setBusy(false);
         }
     }
 
@@ -315,10 +376,7 @@ class WatermillChatbot {
     }
 }
 
-// ?섏씠吏 濡쒕뱶 ??梨쀫큸 珥덇린??
 document.addEventListener('DOMContentLoaded', () => {
-    // ?곷? 寃쎈줈 ?ъ슜???꾪빐 apiUrl ?놁씠 珥덇린??
     window.chatbot = new WatermillChatbot();
-    console.log('물레방아하우스 챗봇이 준비되었습니다!');
 });
 

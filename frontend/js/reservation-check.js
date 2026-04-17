@@ -147,7 +147,6 @@
                 }),
             });
 
-            // 서버 에러(500 등)에서 HTML 반환 시 JSON 파싱 실패 방지
             let data;
             try {
                 data = await response.json();
@@ -156,7 +155,6 @@
             }
 
             if (!response.ok) {
-                // 404 = 예약 없음 → 친화적 메시지
                 if (response.status === 404) {
                     throw new Error('입력하신 정보와 일치하는 예약을 찾을 수 없습니다.\n이름과 연락처를 다시 확인해 주세요.');
                 }
