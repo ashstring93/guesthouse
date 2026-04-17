@@ -8,9 +8,9 @@
 - 예약 현황 달력 조회 (`/reservation/list`)
 - 예약/결제 준비 페이지 (`/reservation/book`)
 - 예약 확인 조회 (`/reservation/check`)
-- 토스페이먼츠 V2 결제 연동 (성공/실패/취소 처리)
-- 관리자 대시보드 (예약 목록, 결제 취소)
-- Gemini 2.5 Flash-Lite 기반 스트리밍 챗봇 (`/api/chat`)
+- 토스페이먼츠 V2 결제 연동 (성공/실패/취소 처리, 가상계좌 미지원)
+- 관리자 대시보드 (예약 목록, 결제 취소, 예약 차단일 관리)
+- Gemini 2.5 Flash-Lite 기반 SSE 스트리밍 챗봇 (`/api/chat`)
 - SQLite 기반 예약/약관동의/챗로그 저장
 
 ## 디렉토리 구조
@@ -55,7 +55,7 @@
 │  │  ├─ reservation-calendar.js  # 예약 캘린더 컴포넌트
 │  │  ├─ reservation-check.js     # 예약 조회 로직
 │  │  └─ reservation-list.js      # 예약 현황 초기화
-│  ├─ images/                 # 숙소 사진, 로고, OG 이미지
+│  ├─ images/                 # 압축된 숙소 사진, 로고, OG 이미지
 │  ├─ fonts/                  # 커스텀 폰트 (학교안심우주)
 │  └─ pages/
 │     ├─ reservation/
@@ -110,15 +110,23 @@ python server.py
 | `GEMINI_API_KEY` | Gemini API 키 **(필수)** | - |
 | `GEMINI_MODEL` | 사용할 Gemini 모델 | `gemini-2.5-flash-lite` |
 | `PORT` | 서버 포트 | `8000` |
+| `UVICORN_RELOAD` | 개발 중 자동 재시작 여부 (`true`/`false`) | `false` |
 | `CORS_ORIGINS` | 허용할 오리진 목록 (쉼표 구분) | `http://localhost:8000` |
-| `BASE_WEEKDAY_RATE` | 평일 1박 요금 | `150000` |
-| `BASE_WEEKEND_RATE` | 주말 1박 요금 | `200000` |
+| `BASE_WEEKDAY_RATE` | 평일 1박 요금 | `184847` |
+| `BASE_WEEKEND_RATE` | 주말 1박 요금 | `242612` |
 | `BASE_GUESTS` / `MAX_GUESTS` | 기본/최대 인원 | `2` / `8` |
 | `ADULT_EXTRA_FEE` | 추가 인원 요금 (1인/1박) | `20000` |
 | `BBQ_FEE` | BBQ 옵션 요금 | `20000` |
 | `TOSSPAYMENTS_WIDGET_CLIENT_KEY` | 토스 위젯 클라이언트 키 | - |
+| `TOSSPAYMENTS_PAYMENT_METHOD_VARIANT_KEY` | 가상계좌를 제거한 토스 결제 UI variantKey | `DEFAULT` |
 | `TOSSPAYMENTS_SECRET_KEY` | 토스 시크릿 키 | - |
+| `TOSSPAYMENTS_API_BASE` | 토스 API 기본 주소 | `https://api.tosspayments.com` |
+| `PAYMENT_TERMS_VERSION` | 결제 약관 스냅샷 버전 | `2026-03-09-v1` |
+| `BOOKED_STATUSES` | 예약 마감으로 처리할 결제 상태 목록 | `confirming,confirmed,paid` |
+| `HOLIDAY_DATES` | 수동 공휴일 목록 (쉼표 구분, `YYYY-MM-DD`) | - |
 | `ADMIN_DASHBOARD_TOKEN` | 관리자 대시보드 인증 토큰 | - |
+
+토스 결제 UI는 상점관리자에서 가상계좌를 제거한 variantKey를 사용하는 것을 전제로 합니다. 서버에서도 결제 승인 후 가상계좌 결제수단이 확인되면 자동 취소하고 예약을 확정하지 않습니다.
 
 ## 주요 API
 
@@ -133,9 +141,12 @@ python server.py
 | `GET` | `/reservation/success` | 토스 결제 성공 콜백 |
 | `GET` | `/reservation/fail` | 토스 결제 실패 콜백 |
 | `POST` | `/api/reservation/check` | 이름+연락처로 예약 조회 |
+| `GET` | `/api/admin/date-blocks` | 관리자 예약 차단일 목록 |
+| `POST` | `/api/admin/date-blocks` | 관리자 예약 차단일 추가 |
+| `DELETE` | `/api/admin/date-blocks/{block_id}` | 관리자 예약 차단일 삭제 |
 | `GET` | `/api/admin/reservations` | 관리자 예약 목록 |
 | `POST` | `/api/admin/cancel-payment` | 관리자 결제 취소 |
-| `POST` | `/api/chat` | 챗봇 스트리밍 응답 |
+| `POST` | `/api/chat` | 챗봇 SSE 스트리밍 응답 (`text/event-stream`) |
 
 ## 데이터 저장
 
@@ -146,3 +157,14 @@ python server.py
 | `chat_logs` | 챗봇 대화 기록 |
 | `payment_intents` | 예약/결제 정보 |
 | `payment_term_consents` | 약관 동의 기록 |
+| `admin_date_blocks` | 관리자 예약 차단일 |
+
+## 이미지 관리
+
+실제 페이지는 `frontend/images/`의 압축 이미지 파일을 사용합니다.
+
+- 메인 히어로: `hero-*.jpg`
+- 객실 갤러리: `gallery-*.jpg`
+- 소개/미리보기: `about-garden-view.jpg`, `og-cover.jpg`
+
+원본 사진 폴더 `frontend/images/new_images/`는 로컬 작업용이며 Git에 포함하지 않습니다. 원본을 교체할 때는 압축본을 다시 생성한 뒤 HTML에서 압축 파일만 참조합니다.
