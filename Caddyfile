@@ -1,4 +1,7 @@
 watermill.kr, www.watermill.kr {
+    @legacy_root path /guesthouse /guesthouse/
+    redir @legacy_root / 308
+
     encode zstd gzip
     reverse_proxy guesthouse:8000
 }
