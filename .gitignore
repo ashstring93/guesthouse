@@ -1,5 +1,6 @@
 # Project Root
 .env
+data/
 chroma_db/
 .venv
 venv/

@@ -1,170 +1,303 @@
-# 물레방아하우스 (Guesthouse Web + API)
+<div align="center">
 
-물레방아하우스 소개 웹사이트, 예약/결제 흐름, 그리고 Gemini 기반 숙소 안내 챗봇을 함께 제공하는 프로젝트입니다.
+# 물레방아하우스
+
+조용한 독채 숙소를 위한 소개 웹사이트, 예약·결제 흐름, 관리자 기능,  
+그리고 Gemini 기반 숙소 안내 챗봇을 하나의 저장소로 운영하는 프로젝트입니다.
+
+</div>
+
+---
+
+## 프로젝트 개요
+
+이 저장소는 **물레방아하우스 운영에 필요한 웹 애플리케이션 전체**를 담고 있습니다.
+
+- 숙소 소개용 랜딩 페이지
+- 예약 가능일 조회 및 예약 확인
+- 토스페이먼츠 기반 결제 흐름
+- 관리자용 예약 관리 기능
+- 숙소 안내용 Gemini 챗봇
+- Docker 기반 배포 구조
+
+> 운영 관점에서는 “코드는 저장소에”, “실제 환경값과 데이터는 서버에” 두는 구조를 목표로 합니다.
+
+## 한눈에 보기
+
+| 항목 | 내용 |
+|---|---|
+| 백엔드 | FastAPI, Uvicorn |
+| 프론트엔드 | HTML, CSS, JavaScript |
+| 결제 | TossPayments V2 |
+| AI | Gemini API |
+| 데이터 저장 | SQLite |
+| 배포 방식 | Docker Compose |
+| 기본 포트 | `8000` |
 
 ## 주요 기능
 
-- 숙소 소개/객실/위치/리뷰 페이지 제공
-- 예약 현황 달력 조회 (`/reservation/list`)
-- 예약/결제 준비 페이지 (`/reservation/book`)
-- 예약 확인 조회 (`/reservation/check`)
-- 토스페이먼츠 V2 결제 연동 (성공/실패/취소 처리, 가상계좌 미지원)
-- 관리자 대시보드 (예약 목록, 결제 취소, 예약 차단일 관리)
-- Gemini 2.5 Flash-Lite 기반 SSE 스트리밍 챗봇 (`/api/chat`)
-- SQLite 기반 예약/약관동의/챗로그 저장
+| 영역 | 설명 |
+|---|---|
+| 숙소 소개 | 메인 페이지, 객실 안내, 위치, 리뷰 섹션 제공 |
+| 예약 흐름 | 예약 견적, 예약 준비, 예약 조회 기능 제공 |
+| 결제 처리 | 토스페이먼츠 결제 준비, 성공/실패/취소 흐름 처리 |
+| 관리자 기능 | 예약 목록 조회, 결제 취소, 예약 차단일 관리 |
+| 챗봇 | 숙소 안내 문서를 기반으로 한 SSE 스트리밍 응답 |
+| 운영 구조 | Docker 볼륨으로 SQLite 데이터를 소스코드와 분리 |
 
-## 디렉토리 구조
+---
+
+## 디렉터리 구조
 
 ```text
 .
 ├─ backend/
-│  ├─ server.py               # 메인 앱 (FastAPI 생성, 라우터 등록)
-│  ├─ config.py               # 환경변수, 상수, 경로 설정
-│  ├─ database.py             # DB 초기화, 커넥션, 저장/조회
-│  ├─ models.py               # Pydantic 요청 모델
-│  ├─ utils.py                # 날짜 파싱, 요금 계산, 환불, 토스 인증
-│  ├─ chatbot.py              # Gemini 기반 RAG 챗봇
+│  ├─ server.py
+│  ├─ config.py
+│  ├─ database.py
+│  ├─ models.py
+│  ├─ utils.py
+│  ├─ chatbot.py
 │  ├─ routes/
-│  │  ├─ pages.py             # HTML 페이지 서빙, favicon, 헬스체크
-│  │  ├─ payment.py           # 결제 API (견적, 준비, 성공/실패 콜백)
-│  │  ├─ reservation.py       # 캘린더 설정, 마감일, 예약 조회
-│  │  ├─ admin.py             # 관리자 API (예약 목록, 결제 취소)
-│  │  └─ chat.py              # 챗봇 스트리밍 응답
+│  │  ├─ admin.py
+│  │  ├─ chat.py
+│  │  ├─ pages.py
+│  │  ├─ payment.py
+│  │  └─ reservation.py
 │  ├─ knowledge_base/
-│  │  └─ integrated_accommodation_guide.md  # 챗봇 RAG용 숙소 안내 문서
-│  ├─ .env                    # 환경변수 (Git 제외)
-│  └─ .env.example            # 환경변수 템플릿
-│
+│  │  └─ integrated_accommodation_guide.md
+│  ├─ .env.example
+│  └─ guesthouse.db
 ├─ frontend/
-│  ├─ index.html              # 메인 페이지
+│  ├─ index.html
 │  ├─ css/
-│  │  ├─ style.css            # 공통 레이아웃, 헤더, 네비게이션
-│  │  ├─ about.css            # 숙소 소개 섹션
-│  │  ├─ rooms.css            # 객실 소개 섹션
-│  │  ├─ reviews.css          # 리뷰 섹션
-│  │  ├─ chatbot.css          # 챗봇 위젯
-│  │  ├─ payment.css          # 예약/결제 페이지
-│  │  ├─ reservation.css      # 예약 캘린더/확인 페이지
-│  │  ├─ reservation-hub.css  # 예약 현황 페이지
-│  │  ├─ footer.css           # 푸터
-│  │  └─ responsive.css       # 반응형 미디어쿼리
 │  ├─ js/
-│  │  ├─ script.js            # 메인 페이지 (네이버 지도, 슬라이더)
-│  │  ├─ chatbot.js           # 챗봇 위젯 로직
-│  │  ├─ payment.js           # 예약/결제 로직 (토스 위젯 연동)
-│  │  ├─ reservation-calendar.js  # 예약 캘린더 컴포넌트
-│  │  ├─ reservation-check.js     # 예약 조회 로직
-│  │  └─ reservation-list.js      # 예약 현황 초기화
-│  ├─ images/                 # 압축된 숙소 사진, 로고, OG 이미지
-│  ├─ fonts/                  # 커스텀 폰트 (학교안심우주)
+│  ├─ images/
+│  ├─ fonts/
 │  └─ pages/
-│     ├─ reservation/
-│     │  ├─ book.html         # 예약/결제 페이지
-│     │  ├─ list.html         # 예약 현황 캘린더
-│     │  └─ check.html        # 예약 확인 페이지
-│     └─ admin/
-│        └─ admin-dashboard.html  # 관리자 대시보드
-│
-├─ docs/archive/              # 아카이브 문서
-├─ requirements.txt           # Python 의존성
+├─ data/
+├─ docs/
+├─ Dockerfile
+├─ compose.yml
+├─ .dockerignore
+├─ requirements.txt
 └─ README.md
 ```
 
-## 빠른 시작
+## 구성 설명
 
-### 1) 가상환경 생성 및 의존성 설치
+| 경로 | 역할 |
+|---|---|
+| `backend/` | FastAPI 앱, 예약 로직, 결제 처리, 관리자 기능 |
+| `backend/knowledge_base/` | 챗봇이 참고하는 숙소 안내 문서 |
+| `frontend/` | 실제 사용자에게 보이는 정적 페이지 자산 |
+| `data/` | Docker 실행 시 SQLite 파일을 보관하는 영속 볼륨 경로 |
+| `docs/` | 아카이브 및 참고 문서 |
+
+---
+
+## 권장 실행 방식
+
+이 프로젝트는 **Docker Compose 기준 운영**을 권장합니다.  
+이 방식은 코드와 운영 데이터를 분리하기 쉽고, mini PC 같은 단일 서버 환경에서도 재현성이 좋습니다.
+
+### 1. 환경변수 파일 생성
+
+`backend/.env.example`을 복사해 `backend/.env`를 만듭니다.
+
+```bash
+cp backend/.env.example backend/.env
+```
+
+Windows PowerShell:
+
+```powershell
+Copy-Item backend/.env.example backend/.env
+```
+
+최소한 아래 값은 채워야 합니다.
+
+- `GEMINI_API_KEY`
+- `TOSSPAYMENTS_WIDGET_CLIENT_KEY`
+- `TOSSPAYMENTS_SECRET_KEY`
+- `ADMIN_DASHBOARD_TOKEN`
+
+### 2. Docker로 실행
+
+```bash
+docker compose up -d --build
+```
+
+실행 후 접근 주소:
+
+- 앱: `http://localhost:8000`
+- 헬스체크: `http://localhost:8000/api/health`
+- API 문서: `http://localhost:8000/docs`
+
+### 3. 종료
+
+```bash
+docker compose down
+```
+
+---
+
+## Docker 운영 구조
+
+컨테이너는 애플리케이션 코드를 실행하고, 실제 데이터는 별도 볼륨에 저장합니다.
+
+| 구분 | 경로 |
+|---|---|
+| 호스트 데이터 경로 | `./data` |
+| 컨테이너 내부 데이터 경로 | `/data` |
+| Docker 환경의 SQLite 경로 | `/data/guesthouse.db` |
+
+이 구조의 장점:
+
+- 이미지를 다시 빌드해도 데이터가 유지됩니다.
+- mini PC 초기화 이후에도 `data/`만 백업·복원하면 운영 복구가 쉬워집니다.
+- 소스코드와 런타임 데이터를 명확히 분리할 수 있습니다.
+
+## 로컬 개발 방식
+
+Docker 없이 로컬에서 직접 실행할 수도 있습니다.
+
+### 1. 가상환경 생성
 
 ```bash
 python -m venv venv
-venv\Scripts\activate        # Windows
-# source venv/bin/activate   # Mac/Linux
+```
+
+Windows:
+
+```bash
+venv\Scripts\activate
+```
+
+macOS / Linux:
+
+```bash
+source venv/bin/activate
+```
+
+### 2. 의존성 설치
+
+```bash
 pip install -r requirements.txt
 ```
 
-### 2) 환경변수 설정
+### 3. 환경변수 파일 준비
 
-`backend/.env.example`을 참고해 `backend/.env` 파일을 생성하고 값을 채웁니다.
+`backend/.env.example`을 참고해 `backend/.env`를 생성합니다.
 
-필수:
-
-- `GEMINI_API_KEY`
-
-### 3) 서버 실행
+### 4. 실행
 
 ```bash
 cd backend
 python server.py
 ```
 
-기본 실행 주소:
+---
 
-- 앱: `http://localhost:8000`
-- API 문서: `http://localhost:8000/docs`
+## 환경변수
 
-## 환경변수 요약
+`backend/.env` 파일을 기준으로 동작합니다.
 
-`backend/.env` 기준:
-
-| 변수 | 설명 | 기본값 |
-|------|------|--------|
-| `GEMINI_API_KEY` | Gemini API 키 **(필수)** | - |
-| `GEMINI_MODEL` | 사용할 Gemini 모델 | `gemini-2.5-flash-lite` |
+| 변수명 | 설명 | 기본값 |
+|---|---|---|
+| `GEMINI_API_KEY` | Gemini API 키 | 필수 |
+| `GEMINI_MODEL` | 사용할 Gemini 모델명 | `gemini-2.5-flash-lite` |
 | `PORT` | 서버 포트 | `8000` |
-| `UVICORN_RELOAD` | 개발 중 자동 재시작 여부 (`true`/`false`) | `false` |
-| `CORS_ORIGINS` | 허용할 오리진 목록 (쉼표 구분) | `http://localhost:8000` |
+| `UVICORN_RELOAD` | 개발 중 자동 재시작 여부 | `false` |
+| `CORS_ORIGINS` | 허용할 오리진 목록 | `http://localhost:8000` |
+| `DB_PATH` | SQLite 파일 경로 | 로컬: `backend/guesthouse.db`, Docker: `/data/guesthouse.db` |
 | `BASE_WEEKDAY_RATE` | 평일 1박 요금 | `184847` |
 | `BASE_WEEKEND_RATE` | 주말 1박 요금 | `242612` |
-| `BASE_GUESTS` / `MAX_GUESTS` | 기본/최대 인원 | `2` / `8` |
-| `ADULT_EXTRA_FEE` | 추가 인원 요금 (1인/1박) | `20000` |
-| `BBQ_FEE` | BBQ 옵션 요금 | `20000` |
-| `TOSSPAYMENTS_WIDGET_CLIENT_KEY` | 토스 위젯 클라이언트 키 | - |
-| `TOSSPAYMENTS_PAYMENT_METHOD_VARIANT_KEY` | 가상계좌를 제거한 토스 결제 UI variantKey | `DEFAULT` |
-| `TOSSPAYMENTS_SECRET_KEY` | 토스 시크릿 키 | - |
+| `BASE_GUESTS` | 기본 인원 | `2` |
+| `MAX_GUESTS` | 최대 인원 | `8` |
+| `ADULT_EXTRA_FEE` | 추가 인원 요금 | `20000` |
+| `BBQ_FEE` | 바비큐 옵션 요금 | `20000` |
+| `TOSSPAYMENTS_WIDGET_CLIENT_KEY` | 토스 위젯 클라이언트 키 | 결제 기능 사용 시 필수 |
+| `TOSSPAYMENTS_PAYMENT_METHOD_VARIANT_KEY` | 토스 결제 UI variantKey | `DEFAULT` |
+| `TOSSPAYMENTS_SECRET_KEY` | 토스 시크릿 키 | 결제 기능 사용 시 필수 |
 | `TOSSPAYMENTS_API_BASE` | 토스 API 기본 주소 | `https://api.tosspayments.com` |
-| `PAYMENT_TERMS_VERSION` | 결제 약관 스냅샷 버전 | `2026-03-09-v1` |
-| `BOOKED_STATUSES` | 예약 마감으로 처리할 결제 상태 목록 | `confirming,confirmed,paid` |
-| `HOLIDAY_DATES` | 수동 공휴일 목록 (쉼표 구분, `YYYY-MM-DD`) | - |
-| `ADMIN_DASHBOARD_TOKEN` | 관리자 대시보드 인증 토큰 | - |
-
-토스 결제 UI는 상점관리자에서 가상계좌를 제거한 variantKey를 사용하는 것을 전제로 합니다. 서버에서도 결제 승인 후 가상계좌 결제수단이 확인되면 자동 취소하고 예약을 확정하지 않습니다.
+| `PAYMENT_TERMS_VERSION` | 약관 스냅샷 버전 | `2026-03-09-v1` |
+| `BOOKED_STATUSES` | 예약 완료로 보는 상태 목록 | `confirming,confirmed,paid` |
+| `HOLIDAY_DATES` | 수동 공휴일 목록 | 선택 |
+| `ADMIN_DASHBOARD_TOKEN` | 관리자 인증 토큰 | 관리자 기능 사용 시 필수 |
 
 ## 주요 API
 
 | 메서드 | 경로 | 설명 |
-|--------|------|------|
-| `GET` | `/api/health` | 서버 헬스체크 |
-| `GET` | `/api/calendar/config` | 달력 요금/공휴일 설정 |
-| `GET` | `/api/calendar/availability` | 예약 마감일 목록 |
-| `POST` | `/api/payment/quote` | 요금 견적 |
-| `GET` | `/api/payment/config` | 토스 클라이언트 키 |
-| `POST` | `/api/payment/prepare` | 주문 생성/결제 준비 |
-| `GET` | `/reservation/success` | 토스 결제 성공 콜백 |
-| `GET` | `/reservation/fail` | 토스 결제 실패 콜백 |
-| `POST` | `/api/reservation/check` | 이름+연락처로 예약 조회 |
-| `GET` | `/api/admin/date-blocks` | 관리자 예약 차단일 목록 |
-| `POST` | `/api/admin/date-blocks` | 관리자 예약 차단일 추가 |
-| `DELETE` | `/api/admin/date-blocks/{block_id}` | 관리자 예약 차단일 삭제 |
-| `GET` | `/api/admin/reservations` | 관리자 예약 목록 |
-| `POST` | `/api/admin/cancel-payment` | 관리자 결제 취소 |
-| `POST` | `/api/chat` | 챗봇 SSE 스트리밍 응답 (`text/event-stream`) |
+|---|---|---|
+| `GET` | `/api/health` | 서버 상태 확인 |
+| `GET` | `/api/calendar/config` | 요금 및 공휴일 설정 조회 |
+| `GET` | `/api/calendar/availability` | 예약 불가 날짜 조회 |
+| `POST` | `/api/payment/quote` | 예약 금액 견적 계산 |
+| `GET` | `/api/payment/config` | 토스 결제 설정 조회 |
+| `POST` | `/api/payment/prepare` | 주문 생성 및 결제 준비 |
+| `GET` | `/reservation/success` | 결제 성공 콜백 |
+| `GET` | `/reservation/fail` | 결제 실패 콜백 |
+| `POST` | `/api/reservation/check` | 이름과 연락처로 예약 조회 |
+| `GET` | `/api/admin/date-blocks` | 예약 차단일 목록 조회 |
+| `POST` | `/api/admin/date-blocks` | 예약 차단일 추가 또는 수정 |
+| `DELETE` | `/api/admin/date-blocks/{block_id}` | 예약 차단일 삭제 |
+| `GET` | `/api/admin/reservations` | 예약 목록 조회 |
+| `POST` | `/api/admin/cancel-payment` | 결제 취소 |
+| `POST` | `/api/chat` | 챗봇 SSE 스트리밍 응답 |
 
-## 데이터 저장
+---
 
-로컬 SQLite 파일: `backend/guesthouse.db`
+## 데이터 저장 구조
+
+SQLite를 사용하며, 주요 테이블은 아래와 같습니다.
 
 | 테이블 | 용도 |
-|--------|------|
+|---|---|
 | `chat_logs` | 챗봇 대화 기록 |
-| `payment_intents` | 예약/결제 정보 |
-| `payment_term_consents` | 약관 동의 기록 |
-| `admin_date_blocks` | 관리자 예약 차단일 |
+| `payment_intents` | 예약 및 결제 상태 관리 |
+| `payment_term_consents` | 약관 동의 스냅샷 저장 |
+| `admin_date_blocks` | 관리자 예약 차단일 저장 |
 
-## 이미지 관리
+## GitHub 업로드 기준
 
-실제 페이지는 `frontend/images/`의 압축 이미지 파일을 사용합니다.
+저장소에 **올려야 하는 것**:
 
-- 메인 히어로: `hero-*.jpg`
-- 객실 갤러리: `gallery-*.jpg`
-- 소개/미리보기: `about-garden-view.jpg`, `og-cover.jpg`
+- 애플리케이션 소스코드
+- `Dockerfile`
+- `compose.yml`
+- `.dockerignore`
+- `requirements.txt`
+- `README.md`
+- `.env.example`
 
-원본 사진 폴더 `frontend/images/new_images/`는 로컬 작업용이며 Git에 포함하지 않습니다. 원본을 교체할 때는 압축본을 다시 생성한 뒤 HTML에서 압축 파일만 참조합니다.
+저장소에 **올리면 안 되는 것**:
+
+- `backend/.env`
+- 실제 SQLite DB 파일
+- 로그 파일
+- 인증서
+- 운영 서버 전용 비밀값
+
+---
+
+## 운영 메모
+
+- mini PC 배포 시에는 `backend/.env`와 `data/`만 잘 보존하면 복구가 단순해집니다.
+- SQLite를 계속 사용할 계획이라면 `data/guesthouse.db` 정기 백업이 필요합니다.
+- 운영 환경에서는 Nginx 또는 Caddy 같은 리버스 프록시를 앞단에 두는 구성이 적절합니다.
+- `docs/archive/`는 실행 필수 파일이 아니며 참고 자료 성격입니다.
+
+## 배포 복구 절차
+
+새 서버 또는 초기화 이후 복구는 보통 아래 순서로 진행하면 됩니다.
+
+```bash
+git clone <repository>
+cp backend/.env.example backend/.env
+# 실제 운영값으로 backend/.env 수정
+docker compose up -d --build
+```
+
+기존 데이터가 있다면 `data/guesthouse.db`를 함께 복원하면 됩니다.
+

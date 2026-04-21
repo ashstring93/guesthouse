@@ -1,0 +1,18 @@
+services:
+  guesthouse:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: guesthouse-app
+    restart: unless-stopped
+    env_file:
+      - path: ./backend/.env
+        required: false
+    environment:
+      PORT: 8000
+      UVICORN_RELOAD: "false"
+      DB_PATH: /data/guesthouse.db
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/data

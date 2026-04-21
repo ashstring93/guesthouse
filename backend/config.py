@@ -27,7 +27,7 @@ RESERVATION_PAGES_DIR = FRONTEND_DIR / "pages" / "reservation"
 
 load_dotenv(BACKEND_DIR / ".env")
 
-DB_PATH = BACKEND_DIR / "guesthouse.db"
+DB_PATH = Path(os.getenv("DB_PATH", str(BACKEND_DIR / "guesthouse.db"))).expanduser()
 
 BASE_WEEKDAY_RATE = _env_int("BASE_WEEKDAY_RATE", 184847)
 BASE_WEEKEND_RATE = _env_int("BASE_WEEKEND_RATE", 242612)
