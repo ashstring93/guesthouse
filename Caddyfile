@@ -1,6 +1,4 @@
-# Replace ":80" with your real domain, e.g. "guesthouse.example.com",
-# when you are ready to expose the service on the public internet.
-:80 {
+watermill.kr, www.watermill.kr {
     encode zstd gzip
     reverse_proxy guesthouse:8000
 }
