@@ -93,6 +93,7 @@
 | `frontend/` | 실제 사용자에게 보이는 정적 페이지 자산 |
 | `data/` | Docker 실행 시 SQLite 파일을 보관하는 영속 볼륨 경로 |
 | `docs/` | 아카이브 및 참고 문서 |
+| `Caddyfile` | Caddy reverse proxy 설정 |
 
 ---
 
@@ -130,9 +131,9 @@ docker compose up -d --build
 
 실행 후 접근 주소:
 
-- 앱: `http://localhost:8000`
-- 헬스체크: `http://localhost:8000/api/health`
-- API 문서: `http://localhost:8000/docs`
+- 앱: `http://localhost`
+- 헬스체크: `http://localhost/api/health`
+- API 문서: `http://localhost/docs`
 
 ### 3. 종료
 
@@ -144,19 +145,49 @@ docker compose down
 
 ## Docker 운영 구조
 
-컨테이너는 애플리케이션 코드를 실행하고, 실제 데이터는 별도 볼륨에 저장합니다.
+컨테이너는 애플리케이션 코드를 실행하고, 실제 데이터는 별도 볼륨에 저장합니다.  
+외부 요청은 Caddy가 받고, 내부적으로 FastAPI 컨테이너로 프록시합니다.
 
 | 구분 | 경로 |
 |---|---|
 | 호스트 데이터 경로 | `./data` |
 | 컨테이너 내부 데이터 경로 | `/data` |
 | Docker 환경의 SQLite 경로 | `/data/guesthouse.db` |
+| 외부 공개 포트 | `80`, `443` |
+| 애플리케이션 내부 포트 | `8000` |
 
 이 구조의 장점:
 
 - 이미지를 다시 빌드해도 데이터가 유지됩니다.
 - mini PC 초기화 이후에도 `data/`만 백업·복원하면 운영 복구가 쉬워집니다.
 - 소스코드와 런타임 데이터를 명확히 분리할 수 있습니다.
+- Caddy가 앞단에서 도메인 연결과 HTTPS 종료를 담당할 수 있습니다.
+
+## Caddy 운영 메모
+
+현재 `Caddyfile`은 로컬 확인용으로 `:80`에 바인딩되어 있습니다.
+
+```caddy
+:80 {
+    encode zstd gzip
+    reverse_proxy guesthouse:8000
+}
+```
+
+외부 공개 시에는 첫 줄을 실제 도메인으로 바꾸면 됩니다.
+
+```caddy
+guesthouse.example.com {
+    encode zstd gzip
+    reverse_proxy guesthouse:8000
+}
+```
+
+이후 아래 조건이 맞으면 Caddy가 HTTPS를 자동으로 처리합니다.
+
+- 도메인 DNS가 mini PC의 공인 IP를 가리킴
+- 공유기에서 `80`, `443` 포트를 mini PC로 포워딩함
+- mini PC에서 Caddy가 `80`, `443` 포트를 점유 중임
 
 ## 로컬 개발 방식
 

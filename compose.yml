@@ -12,7 +12,24 @@ services:
       PORT: 8000
       UVICORN_RELOAD: "false"
       DB_PATH: /data/guesthouse.db
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     volumes:
       - ./data:/data
+  caddy:
+    image: caddy:2
+    container_name: guesthouse-caddy
+    restart: unless-stopped
+    depends_on:
+      - guesthouse
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:
